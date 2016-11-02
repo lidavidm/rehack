@@ -2,9 +2,36 @@ extern crate ncurses;
 extern crate voodoo;
 
 use ncurses::*;
+use voodoo::window::WindowLike;
+
+const level: [&'static str; 22] = [
+    "                                                          ",
+    "                                                          ",
+    "                                                          ",
+    "                                                          ",
+    "                                                          ",
+    "                                                          ",
+    "                                                          ",
+    "                                                          ",
+    "                                                          ",
+    "   o....                                                  ",
+    "   o....                                                  ",
+    "                                                          ",
+    "                                                          ",
+    "                                                          ",
+    "                                                          ",
+    "                                                          ",
+    "                                                          ",
+    "                                                          ",
+    "                                                          ",
+    "                                                          ",
+    "                                                          ",
+    "                                                          ",
+];
 
 fn main() {
     use voodoo::terminal::{Mode, Terminal};
+    use voodoo::window::Window;
 
     let locale = LcCategory::all;
     setlocale(locale, "en_US.UTF-8");
@@ -23,15 +50,27 @@ fn main() {
 
     wbkgd(stdscr(), 1);
 
-    let info = newwin(24, 20, 0, 0);
-    let map = newwin(24, 60, 0, 20);
-
-    box_(info, 0, 0);
-    box_(map, 0, 0);
-
     refresh();
-    wrefresh(info);
-    wrefresh(map);
+
+    let mut info = Window::new(0, 0, 20, 24);
+    let mut map = Window::new(20, 0, 60, 24);
+    info.box_(0, 0);
+    map.box_(0, 0);
+
+    for (y, line) in level.iter().enumerate() {
+        let y = (y + 1) as i32;
+        for (x, tile) in line.chars().enumerate() {
+            let x = (x + 1) as i32;
+            match tile {
+                '.' => map.put_at(y, x, '.'), // '·'
+                'o' => map.put_at(y, x, 'O'),
+                _ => {}
+            }
+        }
+    }
+
+    info.refresh();
+    map.refresh();
 
     print!("\x1B[?1003h\n"); // Makes the terminal report mouse movement events
 
@@ -39,8 +78,8 @@ fn main() {
         match voodoo::poll_event() {
             Some(voodoo::Event::Mouse) => {
                 let event = get_mouse_state();
-                mvwprintw(map, event.y, event.x - 20, "y");
-                wrefresh(map);
+                map.put_at(event.y, event.x - 20, 'y');
+                map.refresh();
             }
 
             Some(voodoo::Event::Char('\n')) => {
