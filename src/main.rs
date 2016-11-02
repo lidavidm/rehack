@@ -37,18 +37,14 @@ fn main() {
 
     loop {
         match voodoo::poll_event() {
-            Some(WchResult::KeyCode(KEY_MOUSE)) => {
+            Some(voodoo::Event::Mouse) => {
                 let event = get_mouse_state();
                 mvwprintw(map, event.y, event.x - 20, "y");
                 wrefresh(map);
             }
 
-            Some(WchResult::Char(10)) => {
+            Some(voodoo::Event::Char('\n')) => {
                 break;
-            }
-
-            Some(WchResult::Char(a)) => {
-                // mvwprintw(map, 0, 0, &keyname(a as i32));
             }
 
             _ => {}
