@@ -1,0 +1,10 @@
+[package]
+name = "game-off-2016"
+version = "0.1.0"
+authors = ["David Li <li.davidm96@gmail.com>"]
+
+[dependencies]
+ncurses = "5.83.0"
+
+[replace]
+"ncurses:5.83.0" = { path = '/home/lidavidm/Code/game-off-2016/ncurses-rs/' }
