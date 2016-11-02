@@ -2,9 +2,10 @@ extern crate ncurses;
 extern crate voodoo;
 
 use ncurses::*;
-use voodoo::window::WindowLike;
+use voodoo::terminal::{Mode, Terminal};
+use voodoo::window::{DisplayChar, Window, WindowLike};
 
-const level: [&'static str; 22] = [
+const LEVEL_DESCR: [&'static str; 22] = [
     "                                                          ",
     "                                                          ",
     "                                                          ",
@@ -29,9 +30,46 @@ const level: [&'static str; 22] = [
     "                                                          ",
 ];
 
+struct Level {
+    layout: Vec<String>,
+}
+
+impl Level {
+    fn display_for(&self, y: usize, x: usize) -> Option<DisplayChar> {
+        Self::convert(self.layout[y].chars().nth(x).unwrap())
+    }
+
+    fn convert(c: char) -> Option<DisplayChar> {
+        match c {
+            '.' => Some(Into::<DisplayChar>::into('.').dim()), // '·'
+            'o' => Some(Into::<DisplayChar>::into('O')),
+            _ => None,
+        }
+    }
+
+    fn display(&self, map: &mut Window) {
+        for (y, line) in self.layout.iter().enumerate() {
+            let y = y + 1;
+            for (x, tile) in line.chars().enumerate() {
+                let x = x + 1;
+                match tile {
+                    '.' => map.put_at(y as i32, x as i32, Into::<DisplayChar>::into('.').dim()), // '·'
+                    'o' => map.put_at(y as i32, x as i32, 'O'),
+                    _ => {}
+                }
+            }
+        }
+    }
+}
+
 fn main() {
-    use voodoo::terminal::{Mode, Terminal};
-    use voodoo::window::Window;
+    let mut layout = Vec::new();
+    for s in LEVEL_DESCR.iter() {
+        layout.push(s.to_string());
+    }
+    let level = Level {
+        layout: layout,
+    };
 
     let locale = LcCategory::all;
     setlocale(locale, "en_US.UTF-8");
@@ -57,17 +95,7 @@ fn main() {
     info.box_(0, 0);
     map.box_(0, 0);
 
-    for (y, line) in level.iter().enumerate() {
-        let y = (y + 1) as i32;
-        for (x, tile) in line.chars().enumerate() {
-            let x = (x + 1) as i32;
-            match tile {
-                '.' => map.put_at(y, x, '.'), // '·'
-                'o' => map.put_at(y, x, 'O'),
-                _ => {}
-            }
-        }
-    }
+    level.display(&mut map);
 
     info.refresh();
     map.refresh();
@@ -78,8 +106,15 @@ fn main() {
         match voodoo::poll_event() {
             Some(voodoo::Event::Mouse) => {
                 let event = get_mouse_state();
-                map.put_at(event.y, event.x - 20, 'y');
-                map.refresh();
+                let x = event.x - 20;
+                let y = event.y - 1;
+                if y <= 0 || y >= 59 || x <= 0 || x >= 19 {
+
+                }
+                else if let Some(c) = level.display_for(event.y as usize - 1, event.x as usize - 21) {
+                    map.put_at(event.y, event.x - 20, c.bold());
+                    map.refresh();
+                }
             }
 
             Some(voodoo::Event::Char('\n')) => {
