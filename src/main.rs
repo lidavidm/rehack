@@ -1,20 +1,20 @@
 extern crate ncurses;
-
-use std::io::Write;
+extern crate voodoo;
 
 use ncurses::*;
 
 fn main() {
+    use voodoo::terminal::{Mode, Terminal};
+
     let locale = LcCategory::all;
     setlocale(locale, "en_US.UTF-8");
 
-    initscr();
-    cbreak();
-    noecho();
+    let term = Terminal::new();
+    term.cbreak(Mode::Enabled).unwrap();
+    term.echo(Mode::Disabled).unwrap();
 
     keypad(stdscr(), true);
     curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
-    noecho();
 
     mousemask((ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION) as u64, None);
 
@@ -36,7 +36,7 @@ fn main() {
     print!("\x1B[?1003h\n"); // Makes the terminal report mouse movement events
 
     loop {
-        match poll_event() {
+        match voodoo::poll_event() {
             Some(WchResult::KeyCode(KEY_MOUSE)) => {
                 let event = get_mouse_state();
                 mvwprintw(map, event.y, event.x - 20, "y");
@@ -67,25 +67,4 @@ fn get_mouse_state() -> MEVENT {
         panic!("getmouse");
     }
     event
-}
-
-pub fn poll_event() -> Option<WchResult> {
-    // Can't poll non-root screen for key events - it doesn't work
-    // anymore (dead link:
-    // http://blog.chris.tylers.info/index.php?/archives/212-Using-the-Mouse-with-ncurses.html)
-    // Need to call refresh() or getch() will call it for us, clearing
-    // the screen
-    match getch() {
-        ERR => {
-            None
-        }
-        v => {
-            if v >= KEY_MIN {
-                Some(WchResult::KeyCode(v))
-            }
-            else {
-                Some(WchResult::Char(v as u32))
-            }
-        }
-    }
 }

@@ -3,6 +3,7 @@ name = "game-off-2016"
 version = "0.1.0"
 dependencies = [
  "ncurses 5.83.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "voodoo 0.1.0",
 ]
 
 [[package]]
@@ -22,6 +23,13 @@ name = "ncurses"
 version = "5.83.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 replace = "ncurses 5.83.0"
+
+[[package]]
+name = "voodoo"
+version = "0.1.0"
+dependencies = [
+ "ncurses 5.83.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [metadata]
 "checksum libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)" = "044d1360593a78f5c8e5e710beccdc24ab71d1f01bc19a29bcacdba22e8475d8"
