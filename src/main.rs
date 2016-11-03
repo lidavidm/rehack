@@ -146,13 +146,15 @@ fn intersects(program: &Program, point: Point) -> bool {
 }
 
 fn main() {
+    use voodoo::terminal::{Mode, Terminal};
     let mut level = Level::new(&LEVEL_DESCR);
     level.player_programs.push(Program::new(Point::new(4, 4)));
 
-    let mut terminal = voodoo::terminal::Terminal::new();
-    let voodoo::terminal::Terminal { ref mut stdin, ref mut stdout } = terminal;
+    let mut terminal = Terminal::new();
+    terminal.cursor(Mode::Disabled);
+    terminal.clear();
+    let Terminal { ref mut stdin, ref mut stdout } = terminal;
 
-    write!(stdout, "{}{}", termion::clear::All, termion::cursor::Hide).unwrap();
     stdout.flush().unwrap();
 
     let mut info = voodoo::window::Window::new(Point::new(0, 0), 20, 24);
