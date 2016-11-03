@@ -2,7 +2,7 @@
 name = "game-off-2016"
 version = "0.1.0"
 dependencies = [
- "ncurses 5.83.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "termion 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "voodoo 0.1.0",
 ]
 
@@ -12,25 +12,20 @@ version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "ncurses"
-version = "5.83.0"
+name = "termion"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
-name = "ncurses"
-version = "5.83.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-replace = "ncurses 5.83.0"
-
-[[package]]
 name = "voodoo"
 version = "0.1.0"
 dependencies = [
- "ncurses 5.83.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "termion 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [metadata]
 "checksum libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)" = "044d1360593a78f5c8e5e710beccdc24ab71d1f01bc19a29bcacdba22e8475d8"
-"checksum ncurses 5.83.0 (registry+https://github.com/rust-lang/crates.io-index)" = "80b13da8dc00d8719bd573762428fe4d94b464265990055e493981b95741ec4f"
+"checksum termion 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "b38671f376ed6147ce4bc7df3f216f68631beb17433c205e2adb30a2d6b33e45"

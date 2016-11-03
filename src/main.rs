@@ -1,9 +1,11 @@
-extern crate ncurses;
+extern crate termion;
 extern crate voodoo;
 
-use ncurses::*;
-use voodoo::terminal::{Mode, Terminal};
-use voodoo::window::{DisplayChar, Window, WindowLike};
+use std::io::{Write};
+
+use termion::event::{Key, Event, MouseEvent};
+use termion::input::{TermRead};
+use voodoo::window::{Point, TermCell, Window};
 
 const LEVEL_DESCR: [&'static str; 22] = [
     "                                                          ",
@@ -31,20 +33,18 @@ const LEVEL_DESCR: [&'static str; 22] = [
 ];
 
 struct Program {
-    y: i32,
-    x: i32,
+    position: Point,
 }
 
 impl Program {
-    fn new(y: i32, x: i32) -> Program {
+    fn new(position: Point) -> Program {
         Program {
-            y: y,
-            x: x,
+            position: position,
         }
     }
 
-    fn render(&self) -> (i32, i32, DisplayChar) {
-        (self.y, self.x, ACS_BLOCK().into())
+    fn render(&self) -> (Point, TermCell) {
+        (self.position, '◘'.into())
     }
 }
 
@@ -65,16 +65,16 @@ impl Level {
         }
     }
 
-    fn display_for(&self, y: usize, x: usize) -> Option<DisplayChar> {
+    fn display_for(&self, y: usize, x: usize) -> Option<TermCell> {
         Self::convert(self.layout[y].chars().nth(x).unwrap())
     }
 
     // TODO: need char -> Tile -> DisplayChar
 
-    fn convert(c: char) -> Option<DisplayChar> {
+    fn convert(c: char) -> Option<TermCell> {
         match c {
-            '.' => Some(Into::<DisplayChar>::into(ACS_BULLET()).dim()), // '·'
-            'o' => Some(Into::<DisplayChar>::into('O')),
+            '.' => Some('·'.into()),
+            'o' => Some('O'.into()),
             _ => None,
         }
     }
@@ -85,15 +85,15 @@ impl Level {
             for (x, tile) in line.chars().enumerate() {
                 let x = x + 1;
                 match Self::convert(tile) {
-                    Some(c) => map.put_at(y as i32, x as i32, c),
+                    Some(c) => map.put_at(Point::new(x as u16, y as u16), c),
                     None => {},
                 }
             }
         }
 
         for program in self.player_programs.iter() {
-            let (y, x, c) = program.render();
-            map.put_at(y, x, c);
+            let (point, c) = program.render();
+            map.put_at(point, c);
         }
     }
 }
@@ -104,7 +104,7 @@ enum UiState {
 }
 
 enum UiEvent {
-    Click { y: i32, x: i32 },
+    Click(Point),
 }
 
 enum GameState {
@@ -119,95 +119,67 @@ struct UiModelView {
 }
 
 impl UiState {
-    fn next(self, event: UiEvent, level: &mut Level, info: &mut Window, map: &mut Window) -> UiState {
+    fn next(self, event: UiEvent, level: &mut Level// , info: &mut Window, map: &mut Window
+    ) -> UiState {
         use UiEvent::*;
         use UiState::*;
 
         match (self, event) {
-            (Unselected, Click { y, x }) => {
+            (Unselected, Click(p)) => {
                 for program in level.player_programs.iter() {
-                    if intersects(&program, y, x) {
-                        let (y, x, c) = program.render();
-                        wattron(map.window(), COLOR_PAIR(2));
-                        map.put_at(y, x, c);
+                    if intersects(&program, p) {
+                        // let (y, x, c) = program.render();
                         return Selected;
                     }
                 }
                 Unselected
             }
-            (Selected, Click { .. }) => {
+            (Selected, Click(_)) => {
                 Unselected
             }
         }
     }
 }
 
-fn intersects(program: &Program, y: i32, x: i32) -> bool {
-    return program.y == y && program.x == x;
+fn intersects(program: &Program, point: Point) -> bool {
+    program.position == point
 }
 
 fn main() {
     let mut level = Level::new(&LEVEL_DESCR);
-    level.player_programs.push(Program::new(4, 4));
+    level.player_programs.push(Program::new(Point::new(4, 4)));
 
-    let term = Terminal::new();
-    term.cbreak(Mode::Enabled).unwrap();
-    term.echo(Mode::Disabled).unwrap();
+    let mut terminal = voodoo::terminal::Terminal::new();
+    let voodoo::terminal::Terminal { ref mut stdin, ref mut stdout } = terminal;
 
-    keypad(stdscr(), true);
-    curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
+    write!(stdout, "{}{}", termion::clear::All, termion::cursor::Hide).unwrap();
+    stdout.flush().unwrap();
 
-    mousemask((ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION) as u32, None);
-
-    start_color();
-    init_pair(1, COLOR_BLACK, COLOR_WHITE);
-    init_pair(2, COLOR_BLACK, COLOR_BLUE);
-
-    wbkgd(stdscr(), 1);
-
-    refresh();
-
-    let mut info = Window::new(0, 0, 20, 24);
-    let mut map = Window::new(20, 0, 60, 24);
-    info.box_(0, 0);
-    map.box_(0, 0);
-
+    let mut info = voodoo::window::Window::new(Point::new(0, 0), 20, 24);
+    let mut map = voodoo::window::Window::new(Point::new(20, 0), 60, 24);
+    info.border();
+    map.border();
     level.display(&mut map);
+    info.refresh(stdout);
+    map.refresh(stdout);
 
-    info.refresh();
-    map.refresh();
-
-    print!("\x1B[?1003h\n"); // Makes the terminal report mouse movement events
-
-    let mut ui_state = UiState::Unselected;
-    loop {
-        match voodoo::poll_event() {
-            Some(voodoo::Event::Mouse) => {
-                let event = voodoo::get_mouse_state();
-                let x = event.x - 20;
-                let y = event.y - 1;
-
-                if y <= 0 || y >= 19 || x <= 0 || x >= 59 {
+    for c in stdin.events() {
+        let evt = c.unwrap();
+        match evt {
+            Event::Key(Key::Char('q')) => break,
+            Event::Mouse(me) => {
+                match me {
+                    MouseEvent::Press(_, x, y) => {
+                        if let Some(p) = map.position.from_global_frame(Point::new(x, y)) {
+                            map.put_at(p, 'x');
+                        }
+                    },
+                    _ => (),
                 }
-                else if ((event.state as i32) & BUTTON1_CLICKED) != 0 {
-                    ui_state = ui_state.next(UiEvent::Click { y: y, x: x }, &mut level, &mut info, &mut map);
-                }
-                // else if let Some(c) = level.display_for(event.y as usize - 1, event.x as usize - 21) {
-                //     map.put_at(event.y, event.x - 20, c.bold());
-                // }
-                map.refresh();
             }
-
-            Some(voodoo::Event::Char('\n')) => {
-                break;
-            }
-
-            _ => {
-                map.put_at(1, 1, 'o');
-                map.refresh();
-            }
+            _ => {}
         }
+        info.refresh(stdout);
+        map.refresh(stdout);
     }
-
-    print!("\x1B[?1003l\n"); // Disable mouse movement events, as l = low
-}
+ }
