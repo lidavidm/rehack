@@ -146,13 +146,14 @@ fn intersects(program: &Program, point: Point) -> bool {
 }
 
 fn main() {
+    use voodoo::color::ColorValue;
     use voodoo::terminal::{Mode, Terminal};
     let mut level = Level::new(&LEVEL_DESCR);
     level.player_programs.push(Program::new(Point::new(4, 4)));
 
     let mut terminal = Terminal::new();
     terminal.cursor(Mode::Disabled);
-    terminal.clear();
+    terminal.clear_color(ColorValue::Black);
     let Terminal { ref mut stdin, ref mut stdout } = terminal;
 
     stdout.flush().unwrap();
@@ -173,7 +174,13 @@ fn main() {
                 match me {
                     MouseEvent::Press(_, x, y) => {
                         if let Some(p) = map.position.from_global_frame(Point::new(x, y)) {
-                            map.put_at(p, 'x');
+                            for program in level.player_programs.iter() {
+                                if intersects(program, p) {
+                                    let (_, mut tc) = program.render();
+                                    tc.bg = Some(ColorValue::Blue);
+                                    map.put_at(p, tc);
+                                }
+                            }
                         }
                     },
                     _ => (),
