@@ -1,3 +1,6 @@
 [submodule "ncurses-rs"]
 	path = ncurses-rs
 	url = git@github.com:lidavidm/ncurses-rs.git
+[submodule "voodoo"]
+	path = voodoo
+	url = git@github.com:lidavidm/voodoo.git
