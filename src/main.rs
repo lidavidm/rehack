@@ -97,6 +97,52 @@ impl Level {
     }
 }
 
+enum UiState {
+    Unselected,
+    Selected,
+}
+
+enum UiEvent {
+    Click { y: i32, x: i32 },
+}
+
+enum GameState {
+    Setup,
+    PlayerTurn,
+    AITurn,
+    AIExecute,
+}
+
+struct UiModelView {
+
+}
+
+impl UiState {
+    fn next(self, event: UiEvent, level: &mut Level, info: &mut Window, map: &mut Window) -> UiState {
+        use UiEvent::*;
+        use UiState::*;
+
+        match (self, event) {
+            (Unselected, Click { y, x }) => {
+                for program in level.player_programs.iter() {
+                    if intersects(&program, y, x) {
+                        map.put_at(y, x, 'X');
+                        return Selected;
+                    }
+                }
+                Unselected
+            }
+            (Selected, Click { .. }) => {
+                Unselected
+            }
+        }
+    }
+}
+
+fn intersects(program: &Program, y: i32, x: i32) -> bool {
+    return program.y == y && program.x == x;
+}
+
 fn main() {
     let mut level = Level::new(&LEVEL_DESCR);
     level.player_programs.push(Program::new(4, 4));
@@ -129,22 +175,22 @@ fn main() {
 
     print!("\x1B[?1003h\n"); // Makes the terminal report mouse movement events
 
+    let mut ui_state = UiState::Unselected;
     loop {
         match voodoo::poll_event() {
             Some(voodoo::Event::Mouse) => {
                 let event = voodoo::get_mouse_state();
-                map.put_at(1, 1, 'x');
                 let x = event.x - 20;
                 let y = event.y - 1;
 
                 if y <= 0 || y >= 19 || x <= 0 || x >= 59 {
                 }
                 else if ((event.state as i32) & BUTTON1_CLICKED) != 0 {
-                    map.put_at(y, x, 'a');
+                    ui_state = ui_state.next(UiEvent::Click { y: y, x: x }, &mut level, &mut info, &mut map);
                 }
-                else if let Some(c) = level.display_for(event.y as usize - 1, event.x as usize - 21) {
-                    map.put_at(event.y, event.x - 20, c.bold());
-                }
+                // else if let Some(c) = level.display_for(event.y as usize - 1, event.x as usize - 21) {
+                //     map.put_at(event.y, event.x - 20, c.bold());
+                // }
                 map.refresh();
             }
 
