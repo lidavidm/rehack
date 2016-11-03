@@ -9,21 +9,21 @@ const LEVEL_DESCR: [&'static str; 22] = [
     "                                                          ",
     "                                                          ",
     "                                                          ",
-    "                                                          ",
-    "                                                          ",
-    "                                                          ",
-    "                                                          ",
-    "                                                          ",
-    "                                                          ",
-    "   o....                                                  ",
-    "   o....                                                  ",
-    "                                                          ",
-    "                                                          ",
-    "                                                          ",
-    "                                                          ",
-    "                                                          ",
-    "                                                          ",
-    "                                                          ",
+    "          ..                                              ",
+    "          ..                                              ",
+    "          ..                                              ",
+    "          ..                                              ",
+    "          ..                                              ",
+    "          ..                                              ",
+    "   o................                                      ",
+    "   o................                                      ",
+    "          ..                                              ",
+    "          ..                                              ",
+    "          ..                                              ",
+    "          ..                                              ",
+    "          ..                                              ",
+    "          .......................                         ",
+    "          .......................                         ",
     "                                                          ",
     "                                                          ",
     "                                                          ",
@@ -39,9 +39,11 @@ impl Level {
         Self::convert(self.layout[y].chars().nth(x).unwrap())
     }
 
+    // TODO: need char -> Tile -> DisplayChar
+
     fn convert(c: char) -> Option<DisplayChar> {
         match c {
-            '.' => Some(Into::<DisplayChar>::into('.').dim()), // '·'
+            '.' => Some(Into::<DisplayChar>::into(ACS_BULLET()).dim()), // '·'
             'o' => Some(Into::<DisplayChar>::into('O')),
             _ => None,
         }
@@ -53,7 +55,7 @@ impl Level {
             for (x, tile) in line.chars().enumerate() {
                 let x = x + 1;
                 match tile {
-                    '.' => map.put_at(y as i32, x as i32, Into::<DisplayChar>::into('.').dim()), // '·'
+                    '.' => map.put_at(y as i32, x as i32, Into::<DisplayChar>::into(ACS_BULLET()).dim()), // '·'
                     'o' => map.put_at(y as i32, x as i32, 'O'),
                     _ => {}
                 }
@@ -71,8 +73,8 @@ fn main() {
         layout: layout,
     };
 
-    let locale = LcCategory::all;
-    setlocale(locale, "en_US.UTF-8");
+    // let locale = LcCategory::all;
+    // setlocale(locale, "en_US.UTF-8");
 
     let term = Terminal::new();
     term.cbreak(Mode::Enabled).unwrap();
@@ -81,7 +83,7 @@ fn main() {
     keypad(stdscr(), true);
     curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
 
-    mousemask((ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION) as u64, None);
+    mousemask((ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION) as u32, None);
 
     start_color();
     init_pair(1, COLOR_BLACK, COLOR_WHITE);
@@ -126,8 +128,11 @@ fn main() {
     }
 
     print!("\x1B[?1003l\n"); // Disable mouse movement events, as l = low
-
+    let a = ACS_BULLET();
+    // initscr();
     endwin();
+    println!("{}", a);
+    // ncurses::constants::acsmap();
 }
 
 fn get_mouse_state() -> MEVENT {
