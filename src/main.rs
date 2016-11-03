@@ -30,11 +30,41 @@ const LEVEL_DESCR: [&'static str; 22] = [
     "                                                          ",
 ];
 
+struct Program {
+    y: i32,
+    x: i32,
+}
+
+impl Program {
+    fn new(y: i32, x: i32) -> Program {
+        Program {
+            y: y,
+            x: x,
+        }
+    }
+
+    fn display(&self, map: &mut Window) {
+        map.put_at(self.y, self.x, ACS_BLOCK());
+    }
+}
+
 struct Level {
     layout: Vec<String>,
+    player_programs: Vec<Program>,
 }
 
 impl Level {
+    fn new(description: &[&str; 22]) -> Level {
+        let mut layout = Vec::new();
+        for s in description.iter() {
+            layout.push(s.to_string());
+        }
+        Level {
+            layout: layout,
+            player_programs: Vec::new(),
+        }
+    }
+
     fn display_for(&self, y: usize, x: usize) -> Option<DisplayChar> {
         Self::convert(self.layout[y].chars().nth(x).unwrap())
     }
@@ -54,27 +84,22 @@ impl Level {
             let y = y + 1;
             for (x, tile) in line.chars().enumerate() {
                 let x = x + 1;
-                match tile {
-                    '.' => map.put_at(y as i32, x as i32, Into::<DisplayChar>::into(ACS_BULLET()).dim()), // '·'
-                    'o' => map.put_at(y as i32, x as i32, 'O'),
-                    _ => {}
+                match Self::convert(tile) {
+                    Some(c) => map.put_at(y as i32, x as i32, c),
+                    None => {},
                 }
             }
+        }
+
+        for program in self.player_programs.iter() {
+            program.display(map);
         }
     }
 }
 
 fn main() {
-    let mut layout = Vec::new();
-    for s in LEVEL_DESCR.iter() {
-        layout.push(s.to_string());
-    }
-    let level = Level {
-        layout: layout,
-    };
-
-    // let locale = LcCategory::all;
-    // setlocale(locale, "en_US.UTF-8");
+    let mut level = Level::new(&LEVEL_DESCR);
+    level.player_programs.push(Program::new(4, 4));
 
     let term = Terminal::new();
     term.cbreak(Mode::Enabled).unwrap();
@@ -107,39 +132,32 @@ fn main() {
     loop {
         match voodoo::poll_event() {
             Some(voodoo::Event::Mouse) => {
-                let event = get_mouse_state();
+                let event = voodoo::get_mouse_state();
+                map.put_at(1, 1, 'x');
                 let x = event.x - 20;
                 let y = event.y - 1;
-                if y <= 0 || y >= 59 || x <= 0 || x >= 19 {
 
+                if y <= 0 || y >= 19 || x <= 0 || x >= 59 {
+                }
+                else if ((event.state as i32) & BUTTON1_CLICKED) != 0 {
+                    map.put_at(y, x, 'a');
                 }
                 else if let Some(c) = level.display_for(event.y as usize - 1, event.x as usize - 21) {
                     map.put_at(event.y, event.x - 20, c.bold());
-                    map.refresh();
                 }
+                map.refresh();
             }
 
             Some(voodoo::Event::Char('\n')) => {
                 break;
             }
 
-            _ => {}
+            _ => {
+                map.put_at(1, 1, 'o');
+                map.refresh();
+            }
         }
     }
 
     print!("\x1B[?1003l\n"); // Disable mouse movement events, as l = low
-    let a = ACS_BULLET();
-    // initscr();
-    endwin();
-    println!("{}", a);
-    // ncurses::constants::acsmap();
-}
-
-fn get_mouse_state() -> MEVENT {
-    let mut event = MEVENT { id: 0, x: 0, y: 0, z: 0, bstate: 0 };
-    let res = getmouse(&mut event);
-    if res != 0 {
-        panic!("getmouse");
-    }
-    event
 }
