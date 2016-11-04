@@ -91,6 +91,7 @@ enum UiState {
 
 enum UiEvent {
     Click(Point),
+    // Movement
 }
 
 enum GameState {
@@ -177,6 +178,10 @@ impl MapView {
     fn clear_highlight(&mut self) {
         self.highlight = None;
     }
+
+    fn show_movement_controls(&mut self, level: &Level, p: Point) {
+
+    }
 }
 
 struct UiModelView {
@@ -196,6 +201,7 @@ impl UiState {
                 for program in level.player_programs.iter() {
                     if intersects(&program, p) {
                         map.highlight(p);
+                        map.show_movement_controls(level, p);
                         info.display_program(program);
                         return Selected;
                     }
@@ -256,6 +262,8 @@ fn main() {
                 match me {
                     MouseEvent::Press(_, x, y) => {
                         if let Some(p) = ui_modelview.map.from_global_frame(Point::new(x, y)) {
+                            // TODO: if movement controls are active, translate the event
+                            // use a method on MapView to get the actual UiEvent
                             ui_state = ui_state.next(
                                 UiEvent::Click(p),
                                 &mut level,
