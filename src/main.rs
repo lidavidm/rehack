@@ -73,10 +73,6 @@ impl Level {
         }
     }
 
-    fn display_for(&self, y: usize, x: usize) -> Option<TermCell> {
-        Self::convert(self.layout[y].chars().nth(x).unwrap())
-    }
-
     // TODO: need char -> Tile -> DisplayChar
 
     fn convert(c: char) -> Option<TermCell> {
@@ -84,24 +80,6 @@ impl Level {
             '.' => Some('·'.into()),
             'o' => Some('O'.into()),
             _ => None,
-        }
-    }
-
-    fn display(&self, map: &mut Window) {
-        for (y, line) in self.layout.iter().enumerate() {
-            let y = y + 1;
-            for (x, tile) in line.chars().enumerate() {
-                let x = x + 1;
-                match Self::convert(tile) {
-                    Some(c) => map.put_at(Point::new(x as u16, y as u16), c),
-                    None => {},
-                }
-            }
-        }
-
-        for program in self.player_programs.iter() {
-            let (point, c) = program.render();
-            map.put_at(point, c);
         }
     }
 }
@@ -122,23 +100,103 @@ enum GameState {
     AIExecute,
 }
 
-struct UiModelView {
+struct InfoView {
+    window: Window,
+}
 
+impl InfoView {
+    fn new(window: Window) -> InfoView {
+        InfoView {
+            window: window,
+        }
+    }
+
+    fn refresh(&mut self, stdout: &mut std::io::Stdout) {
+        self.window.refresh(stdout);
+    }
+
+    fn clear(&mut self) {
+        for col in 2..self.window.width - 2 {
+            self.window.put_at(Point::new(col, 2), ' ');
+        }
+    }
+
+    fn display_program(&mut self, program: &Program) {
+        self.window.print_at(Point::new(2, 2), &program.name);
+    }
+}
+
+struct MapView {
+    window: Window,
+    highlight: Option<Point>,
+}
+
+impl MapView {
+    fn new(window: Window) -> MapView {
+        MapView {
+            window: window,
+            highlight: None,
+        }
+    }
+
+    fn from_global_frame(&self, p: Point) -> Option<Point> {
+        self.window.position.from_global_frame(p)
+    }
+
+    fn display(&mut self, level: &Level) {
+        for (y, line) in level.layout.iter().enumerate() {
+            let y = y + 1;
+            for (x, tile) in line.chars().enumerate() {
+                let x = x + 1;
+                match Level::convert(tile) {
+                    Some(c) => self.window.put_at(Point::new(x as u16, y as u16), c),
+                    None => {},
+                }
+            }
+        }
+
+        for program in level.player_programs.iter() {
+            let (point, mut c) = program.render();
+            if let Some(p) = self.highlight {
+                if p == point {
+                    c.bg = Some(ColorValue::Blue);
+                }
+            }
+            self.window.put_at(point, c);
+        }
+    }
+
+    fn refresh(&mut self, stdout: &mut std::io::Stdout) {
+        self.window.refresh(stdout);
+    }
+
+    fn highlight(&mut self, p: Point) {
+        self.highlight = Some(p);
+    }
+
+    fn clear_highlight(&mut self) {
+        self.highlight = None;
+    }
+}
+
+struct UiModelView {
+    info: InfoView,
+    map: MapView,
 }
 
 impl UiState {
-    fn next(self, event: UiEvent, level: &mut Level, info: &mut Window, map: &mut Window) -> UiState {
+    fn next(self, event: UiEvent, level: &mut Level, mv: &mut UiModelView) -> UiState {
         use UiEvent::*;
         use UiState::*;
+
+        let UiModelView { ref mut info, ref mut map } = *mv;
 
         match (self, event) {
             (Unselected, Click(p)) => {
                 for program in level.player_programs.iter() {
                     if intersects(&program, p) {
-                        let (_, mut tc) = program.render();
-                        tc.bg = Some(ColorValue::Blue);
-                        map.put_at(p, tc);
-                        info.print_at(Point::new(2, 2), &program.name);
+                        map.highlight(p);
+                        info.display_program(program);
                         return Selected;
                     }
                 }
@@ -147,9 +205,9 @@ impl UiState {
             (Selected, Click(_)) => {
                 for program in level.player_programs.iter() {
                     let (p, mut tc) = program.render();
-                    map.put_at(p, tc);
+                    map.clear_highlight();
                 }
-                info.border();
+                info.clear();
                 Unselected
             }
         }
@@ -177,10 +235,17 @@ fn main() {
     let mut map = voodoo::window::Window::new(Point::new(20, 0), 60, 24);
     info.border();
     map.border();
-    level.display(&mut map);
-    info.refresh(stdout);
-    map.refresh(stdout);
 
+    let mut info_view = InfoView::new(info);
+    let mut map_view = MapView::new(map);
+    info_view.refresh(stdout);
+    map_view.display(&level);
+    map_view.refresh(stdout);
+
+    let mut ui_modelview = UiModelView {
+        info: info_view,
+        map: map_view,
+    };
     let mut ui_state = UiState::Unselected;
 
     for c in stdin.events() {
@@ -190,12 +255,11 @@ fn main() {
             Event::Mouse(me) => {
                 match me {
                     MouseEvent::Press(_, x, y) => {
-                        if let Some(p) = map.position.from_global_frame(Point::new(x, y)) {
+                        if let Some(p) = ui_modelview.map.from_global_frame(Point::new(x, y)) {
                             ui_state = ui_state.next(
                                 UiEvent::Click(p),
                                 &mut level,
-                                &mut info,
-                                &mut map
+                                &mut ui_modelview,
                             );
                         }
                     },
@@ -204,7 +268,8 @@ fn main() {
             }
             _ => {}
         }
-        info.refresh(stdout);
-        map.refresh(stdout);
+        ui_modelview.info.refresh(stdout);
+        ui_modelview.map.display(&level);
+        ui_modelview.map.refresh(stdout);
     }
  }
