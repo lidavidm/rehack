@@ -5,6 +5,8 @@ use std::io::{Write};
 
 use termion::event::{Key, Event, MouseEvent};
 use termion::input::{TermRead};
+
+use voodoo::color::ColorValue;
 use voodoo::window::{Point, TermCell, Window};
 
 const LEVEL_DESCR: [&'static str; 22] = [
@@ -119,8 +121,7 @@ struct UiModelView {
 }
 
 impl UiState {
-    fn next(self, event: UiEvent, level: &mut Level// , info: &mut Window, map: &mut Window
-    ) -> UiState {
+    fn next(self, event: UiEvent, level: &mut Level, info: &mut Window, map: &mut Window) -> UiState {
         use UiEvent::*;
         use UiState::*;
 
@@ -128,13 +129,20 @@ impl UiState {
             (Unselected, Click(p)) => {
                 for program in level.player_programs.iter() {
                     if intersects(&program, p) {
-                        // let (y, x, c) = program.render();
+                        let (_, mut tc) = program.render();
+                        tc.bg = Some(ColorValue::Blue);
+                        map.put_at(p, tc);
                         return Selected;
                     }
                 }
                 Unselected
             }
             (Selected, Click(_)) => {
+                for program in level.player_programs.iter() {
+                    let (p, mut tc) = program.render();
+                    tc.bg = Some(ColorValue::Black);
+                    map.put_at(p, tc);
+                }
                 Unselected
             }
         }
@@ -146,7 +154,6 @@ fn intersects(program: &Program, point: Point) -> bool {
 }
 
 fn main() {
-    use voodoo::color::ColorValue;
     use voodoo::terminal::{Mode, Terminal};
     let mut level = Level::new(&LEVEL_DESCR);
     level.player_programs.push(Program::new(Point::new(4, 4)));
@@ -166,6 +173,8 @@ fn main() {
     info.refresh(stdout);
     map.refresh(stdout);
 
+    let mut ui_state = UiState::Unselected;
+
     for c in stdin.events() {
         let evt = c.unwrap();
         match evt {
@@ -174,13 +183,12 @@ fn main() {
                 match me {
                     MouseEvent::Press(_, x, y) => {
                         if let Some(p) = map.position.from_global_frame(Point::new(x, y)) {
-                            for program in level.player_programs.iter() {
-                                if intersects(program, p) {
-                                    let (_, mut tc) = program.render();
-                                    tc.bg = Some(ColorValue::Blue);
-                                    map.put_at(p, tc);
-                                }
-                            }
+                            ui_state = ui_state.next(
+                                UiEvent::Click(p),
+                                &mut level,
+                                &mut info,
+                                &mut map
+                            );
                         }
                     },
                     _ => (),
