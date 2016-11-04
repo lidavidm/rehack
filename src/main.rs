@@ -13,22 +13,22 @@ const LEVEL_DESCR: [&'static str; 22] = [
     "                                                          ",
     "                                                          ",
     "                                                          ",
-    "          ..                                              ",
-    "          ..                                              ",
-    "          ..                                              ",
-    "          ..                                              ",
-    "          ..                                              ",
-    "          ..                                              ",
-    "   o................                                      ",
-    "   o................                                      ",
-    "          ..                                              ",
-    "          ..                                              ",
-    "          ..                                              ",
-    "          ..                                              ",
-    "          ..                                              ",
-    "          .......................                         ",
-    "          .......................                         ",
     "                                                          ",
+    "          .........................                       ",
+    "          .........................                       ",
+    "          ..                     ..                       ",
+    "          ..                     ..                       ",
+    "          ..                     ..                       ",
+    "          ..                     ..                       ",
+    "   o................             .....                    ",
+    "   o................             .....                    ",
+    "          ..                     ..                       ",
+    "          ..                     ..                       ",
+    "          ..                     ..                       ",
+    "          ..                     ..                       ",
+    "          ..                     ..                       ",
+    "          .........................                       ",
+    "          .........................                       ",
     "                                                          ",
     "                                                          ",
     "                                                          ",
@@ -46,7 +46,9 @@ impl Program {
     }
 
     fn render(&self) -> (Point, TermCell) {
-        (self.position, '◘'.into())
+        let mut tc: TermCell = '◘'.into();
+        tc.bg = Some(ColorValue::Green);
+        (self.position, tc)
     }
 }
 
@@ -140,7 +142,6 @@ impl UiState {
             (Selected, Click(_)) => {
                 for program in level.player_programs.iter() {
                     let (p, mut tc) = program.render();
-                    tc.bg = Some(ColorValue::Black);
                     map.put_at(p, tc);
                 }
                 Unselected
@@ -156,7 +157,8 @@ fn intersects(program: &Program, point: Point) -> bool {
 fn main() {
     use voodoo::terminal::{Mode, Terminal};
     let mut level = Level::new(&LEVEL_DESCR);
-    level.player_programs.push(Program::new(Point::new(4, 4)));
+    level.player_programs.push(Program::new(Point::new(5, 11)));
+    level.player_programs.push(Program::new(Point::new(5, 12)));
 
     let mut terminal = Terminal::new();
     terminal.cursor(Mode::Disabled);
