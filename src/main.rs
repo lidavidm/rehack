@@ -73,6 +73,12 @@ impl Level {
         }
     }
 
+    fn passable(&self, point: Point) -> bool {
+        // TODO: check programs too
+        let cell = self.layout[(point.y - 2) as usize].chars().nth((point.x - 2) as usize);
+        cell == Some('.')
+    }
+
     // TODO: need char -> Tile -> DisplayChar
 
     fn convert(c: char) -> Option<TermCell> {
@@ -130,6 +136,7 @@ impl InfoView {
 struct MapView {
     window: Window,
     highlight: Option<Point>,
+    overlay: Vec<(Point, TermCell)>,
 }
 
 impl MapView {
@@ -137,6 +144,7 @@ impl MapView {
         MapView {
             window: window,
             highlight: None,
+            overlay: Vec::new(),
         }
     }
 
@@ -165,22 +173,40 @@ impl MapView {
             }
             self.window.put_at(point, c);
         }
+
+        for &(p, c) in self.overlay.iter() {
+            self.window.put_at(p, c);
+        }
     }
 
     fn refresh(&mut self, stdout: &mut std::io::Stdout) {
         self.window.refresh(stdout);
     }
 
-    fn highlight(&mut self, p: Point) {
+    fn highlight(&mut self, p: Point, level: &Level) {
         self.highlight = Some(p);
+        let Point { x, y } = p;
+        let east = Point::new(x + 1, y);
+        if level.passable(east) {
+            self.overlay.push((east, '→'.into()));
+        }
+        let west = Point::new(x - 1, y);
+        if level.passable(west) {
+            self.overlay.push((west, '←'.into()));
+        }
+        let north = Point::new(x, y - 1);
+        if level.passable(north) {
+            self.overlay.push((north, '↑'.into()));
+        }
+        let south = Point::new(x, y + 1);
+        if level.passable(south) {
+            self.overlay.push((south, '↓'.into()));
+        }
     }
 
     fn clear_highlight(&mut self) {
         self.highlight = None;
-    }
-
-    fn show_movement_controls(&mut self, level: &Level, p: Point) {
-
+        self.overlay.clear();
     }
 }
 
@@ -200,8 +226,7 @@ impl UiState {
             (Unselected, Click(p)) => {
                 for program in level.player_programs.iter() {
                     if intersects(&program, p) {
-                        map.highlight(p);
-                        map.show_movement_controls(level, p);
+                        map.highlight(p, &level);
                         info.display_program(program);
                         return Selected;
                     }
@@ -227,7 +252,7 @@ fn intersects(program: &Program, point: Point) -> bool {
 fn main() {
     use voodoo::terminal::{Mode, Terminal};
     let mut level = Level::new(&LEVEL_DESCR);
-    level.player_programs.push(Program::new(Point::new(5, 11), "Hack"));
+    level.player_programs.push(Program::new(Point::new(11, 11), "Hack"));
     level.player_programs.push(Program::new(Point::new(5, 12), "Hack"));
 
     let mut terminal = Terminal::new();
