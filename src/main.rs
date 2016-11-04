@@ -36,12 +36,16 @@ const LEVEL_DESCR: [&'static str; 22] = [
 
 struct Program {
     position: Point,
+    name: String,
+    abilities: Vec<String>,
 }
 
 impl Program {
-    fn new(position: Point) -> Program {
+    fn new(position: Point, name: &str) -> Program {
         Program {
             position: position,
+            name: name.to_owned(),
+            abilities: vec![],
         }
     }
 
@@ -134,6 +138,7 @@ impl UiState {
                         let (_, mut tc) = program.render();
                         tc.bg = Some(ColorValue::Blue);
                         map.put_at(p, tc);
+                        info.print_at(Point::new(2, 2), &program.name);
                         return Selected;
                     }
                 }
@@ -144,6 +149,7 @@ impl UiState {
                     let (p, mut tc) = program.render();
                     map.put_at(p, tc);
                 }
+                info.border();
                 Unselected
             }
         }
@@ -157,8 +163,8 @@ fn intersects(program: &Program, point: Point) -> bool {
 fn main() {
     use voodoo::terminal::{Mode, Terminal};
     let mut level = Level::new(&LEVEL_DESCR);
-    level.player_programs.push(Program::new(Point::new(5, 11)));
-    level.player_programs.push(Program::new(Point::new(5, 12)));
+    level.player_programs.push(Program::new(Point::new(5, 11), "Hack"));
+    level.player_programs.push(Program::new(Point::new(5, 12), "Hack"));
 
     let mut terminal = Terminal::new();
     terminal.cursor(Mode::Disabled);
