@@ -120,6 +120,10 @@ impl MapView {
             program.borrow().display_color(ColorValue::Green, &mut self.window);
         }
 
+        for program in level.enemy_programs.iter() {
+            program.borrow().display_color(ColorValue::Red, &mut self.window);
+        }
+
         if let Some(ref program) = self.highlight {
             program.borrow().display_color(ColorValue::Blue, &mut self.window);
         }
@@ -224,6 +228,7 @@ fn main() {
     let mut level = Level::new(&LEVEL_DESCR);
     level.add_player_program(Program::new(Point::new(11, 11), "Hack"));
     level.add_player_program(Program::new(Point::new(5, 12), "Hack"));
+    level.add_enemy_program(Program::new(Point::new(7, 12), "Hack"));
 
     let mut terminal = Terminal::new();
     terminal.cursor(Mode::Disabled);

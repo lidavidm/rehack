@@ -7,6 +7,7 @@ use program::{Program, ProgramRef};
 pub struct Level {
     pub layout: Vec<String>,
     pub player_programs: Vec<ProgramRef>,
+    pub enemy_programs: Vec<ProgramRef>,
 }
 
 impl Level {
@@ -18,11 +19,16 @@ impl Level {
         Level {
             layout: layout,
             player_programs: Vec::new(),
+            enemy_programs: Vec::new(),
         }
     }
 
     pub fn add_player_program(&mut self, program: Program) {
         self.player_programs.push(Rc::new(RefCell::new(program)));
+    }
+
+    pub fn add_enemy_program(&mut self, program: Program) {
+        self.enemy_programs.push(Rc::new(RefCell::new(program)));
     }
 
     pub fn passable(&self, point: Point) -> bool {
@@ -31,7 +37,7 @@ impl Level {
             return false;
         }
 
-        for program in self.player_programs.iter() {
+        for program in self.player_programs.iter().chain(self.enemy_programs.iter()) {
             if program.borrow().intersects(point) {
                 return false;
             }
