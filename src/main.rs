@@ -1,10 +1,12 @@
 extern crate termion;
+extern crate thread_scoped;
 extern crate voodoo;
 
 mod level;
 mod program;
 
 use std::io::{Write};
+use std::sync::mpsc::channel;
 
 use termion::event::{Key, Event, MouseEvent};
 use termion::input::{TermRead};
@@ -217,6 +219,7 @@ impl UiState {
 }
 
 fn main() {
+    use std::sync::mpsc::TryRecvError::*;
     use voodoo::terminal::{Mode, Terminal};
     let mut level = Level::new(&LEVEL_DESCR);
     level.add_player_program(Program::new(Point::new(11, 11), "Hack"));
@@ -246,30 +249,51 @@ fn main() {
     };
     let mut ui_state = UiState::Unselected;
 
-    for c in stdin.events() {
-        let evt = c.unwrap();
-        match evt {
-            Event::Key(Key::Char('q')) => break,
-            Event::Mouse(me) => {
-                match me {
-                    MouseEvent::Press(_, x, y) => {
-                        if let Some(p) = ui_modelview.map.from_global_frame(Point::new(x, y)) {
-                            // TODO: if movement controls are active, translate the event
-                            // use a method on MapView to get the actual UiEvent
-                            ui_state = ui_state.next(
-                                UiEvent::Click(p),
-                                &mut level,
-                                &mut ui_modelview,
-                            );
-                        }
-                    },
-                    _ => (),
+    let (tx, rx) = channel();
+    let guard = unsafe {
+        thread_scoped::scoped(move || {
+            for c in stdin.events() {
+                let evt = c.unwrap();
+                if let Event::Key(Key::Char('q')) = evt {
+                    break;
                 }
+                tx.send(evt).unwrap();
             }
-            _ => {}
+        })
+    };
+
+    loop {
+        // TODO: use recv_timeout
+        let msg = rx.try_recv();
+        match msg {
+            Ok(evt) => {
+                match evt {
+                    Event::Key(Key::Char('q')) => break,
+                    Event::Mouse(me) => {
+                        match me {
+                            MouseEvent::Press(_, x, y) => {
+                                if let Some(p) = ui_modelview.map.from_global_frame(Point::new(x, y)) {
+                                    // TODO: if movement controls are active, translate the event
+                                    // use a method on MapView to get the actual UiEvent
+                                    ui_state = ui_state.next(
+                                        UiEvent::Click(p),
+                                        &mut level,
+                                        &mut ui_modelview,
+                                    );
+                                }
+                            },
+                            _ => (),
+                        }
+                    }
+                    _ => {}
+                }
+                ui_modelview.info.refresh(stdout);
+                ui_modelview.map.display(&level);
+                ui_modelview.map.refresh(stdout);
+            },
+            Err(Disconnected) => break,
+            Err(Empty) => {},
         }
-        ui_modelview.info.refresh(stdout);
-        ui_modelview.map.display(&level);
-        ui_modelview.map.refresh(stdout);
     }
- }
+    guard.join();
+}

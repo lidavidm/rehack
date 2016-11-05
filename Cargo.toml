@@ -4,5 +4,6 @@ version = "0.1.0"
 authors = ["David Li <li.davidm96@gmail.com>"]
 
 [dependencies]
+thread-scoped = "1.0"
 termion = "1.1.2"
 voodoo = { path = '/home/lidavidm/Code/game-off-2016/voodoo' }
