@@ -34,12 +34,41 @@ impl Program {
     }
 
     pub fn display_color(&self, color: ColorValue, window: &mut Window) {
+        let mut prev: Option<Point> = None;
+        let mut cells = self.tail.to_vec();
+        cells.push(self.position);
+        for w in cells.windows(2) {
+            let (cur, next) = (w[0], w[1]);
+            let (x1, y1) = (cur.x as i32, cur.y as i32);
+            let (x2, y2) = (next.x as i32, next.y as i32);
+            let dx = x2 - x1;
+            let dy = y2 - y1;
+
+            let pdx = prev.map(|p| x1 - p.x as i32);
+            let pdy = prev.map(|p| y1 - p.y as i32);
+
+            let mut c: TermCell = match (pdx, pdy, dx, dy) {
+                (None, None, 1, 0) | (None, None, -1, 0) | (Some(1), _, 1, 0) | (Some(-1), _, -1, 0) => '═',
+                (None, None, 0, 1) | (None, None, 0, -1) | (_, Some(1), 0, 1) | (_, Some(-1), 0, -1) => '║',
+                (Some(1), _, 0, 1) | (_, Some(-1), -1, 0) => '╗',
+                (Some(1), _, 0, -1) | (_, Some(1), -1, 0) => '╝',
+                (Some(-1), _, 0, -1) | (_, Some(1), 1, 0) => '╚',
+                (Some(-1), _, 0, 1) | (_, Some(-1), 1, 0) => '╔',
+                _ => '+',
+            }.into();
+            c.bg = Some(color);
+            window.put_at(cur, c);
+            prev = Some(cur);
+        }
+
         let mut tc: TermCell = '◘'.into();
         tc.bg = Some(color);
         window.put_at(self.position, tc);
-        for point in self.tail.iter() {
-            window.put_at(*point, tc);
-        }
+        // let mut tc: TermCell = '+'.into();
+        // tc.bg = Some(color);
+        // for point in self.tail.iter() {
+        //     window.put_at(*point, tc);
+        // }
     }
 
     pub fn intersects(&self, point: Point) -> bool {
