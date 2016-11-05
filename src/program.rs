@@ -9,6 +9,7 @@ pub struct Program {
     tail: Vec<Point>,
     pub name: String,
     pub abilities: Vec<String>,
+    pub max_tail: usize,
 }
 
 pub type ProgramRef = Rc<RefCell<Program>>;
@@ -20,11 +21,15 @@ impl Program {
             tail: vec![],
             name: name.to_owned(),
             abilities: vec![],
+            max_tail: 4,
         }
     }
 
     pub fn move_to(&mut self, point: Point) {
         self.tail.push(self.position);
+        if self.tail.len() >= self.max_tail {
+            self.tail.remove(0);
+        }
         self.position = point;
     }
 
