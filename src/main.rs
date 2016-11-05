@@ -115,13 +115,11 @@ impl MapView {
         }
 
         for program in level.player_programs.iter() {
-            let (point, mut c) = program.borrow().render();
-            if let Some(ref p) = self.highlight {
-                if p.borrow().position == point {
-                    c.bg = Some(ColorValue::Blue);
-                }
-            }
-            self.window.put_at(point, c);
+            program.borrow().display_color(ColorValue::Green, &mut self.window);
+        }
+
+        if let Some(ref program) = self.highlight {
+            program.borrow().display_color(ColorValue::Blue, &mut self.window);
         }
 
         for &(p, c) in self.overlay.iter() {
@@ -191,7 +189,7 @@ impl UiState {
         match (self, event) {
             (Unselected, Click(p)) => {
                 for program in level.player_programs.iter() {
-                    if intersects(&program.borrow(), p) {
+                    if program.borrow().intersects(p) {
                         map.highlight(program.clone(), &level);
                         info.display_program(&program.borrow());
                         return Selected;
@@ -203,7 +201,7 @@ impl UiState {
                 let result = Self::translate_click(p, map);
                 if let Some(p) = result {
                     if let Some(ref mut program) = map.highlight {
-                        program.borrow_mut().position = p;
+                        program.borrow_mut().move_to(p);
                     }
                     map.update_highlight(&level);
                     Selected
@@ -216,10 +214,6 @@ impl UiState {
             }
         }
     }
-}
-
-fn intersects(program: &Program, point: Point) -> bool {
-    program.position == point
 }
 
 fn main() {

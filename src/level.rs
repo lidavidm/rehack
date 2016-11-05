@@ -26,9 +26,18 @@ impl Level {
     }
 
     pub fn passable(&self, point: Point) -> bool {
-        // TODO: check programs too
         let cell = self.layout[(point.y - 1) as usize].chars().nth((point.x - 1) as usize);
-        cell == Some('.')
+        if cell != Some('.') {
+            return false;
+        }
+
+        for program in self.player_programs.iter() {
+            if program.borrow().intersects(point) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     // TODO: need char -> Tile -> DisplayChar
