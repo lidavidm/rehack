@@ -75,7 +75,7 @@ impl Level {
 
     fn passable(&self, point: Point) -> bool {
         // TODO: check programs too
-        let cell = self.layout[(point.y - 2) as usize].chars().nth((point.x - 2) as usize);
+        let cell = self.layout[(point.y - 1) as usize].chars().nth((point.x - 1) as usize);
         cell == Some('.')
     }
 
@@ -216,6 +216,19 @@ struct UiModelView {
 }
 
 impl UiState {
+    fn translate_click(click: Point, level: &Level, map: &MapView) -> Option<Point> {
+        for &(point, _) in map.overlay.iter() {
+            if click == point {
+                for program in level.player_programs.iter() {
+                    if Some(program.position) == map.highlight {
+                        return Some(point);
+                    }
+                }
+            }
+        }
+        None
+    }
+
     fn next(self, event: UiEvent, level: &mut Level, mv: &mut UiModelView) -> UiState {
         use UiEvent::*;
         use UiState::*;
@@ -233,13 +246,24 @@ impl UiState {
                 }
                 Unselected
             }
-            (Selected, Click(_)) => {
-                for program in level.player_programs.iter() {
-                    let (p, mut tc) = program.render();
+            (Selected, Click(p)) => {
+                let result = Self::translate_click(p, level, map);
+                if let Some(p) = result {
+                    for program in level.player_programs.iter_mut() {
+                        if Some(program.position) == map.highlight {
+                            program.position = p;
+                            break;
+                        }
+                    }
                     map.clear_highlight();
+                    map.highlight(p, &level);
+                    Selected
                 }
-                info.clear();
-                Unselected
+                else {
+                    map.clear_highlight();
+                    info.clear();
+                    Unselected
+                }
             }
         }
     }
