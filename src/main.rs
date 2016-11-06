@@ -149,7 +149,13 @@ impl MapView {
     fn update_highlight(&mut self, level: &Level) {
         if let Some(ref program) = self.highlight {
             self.overlay.clear();
-            let Point { x, y } = program.borrow().position;
+            let program = program.borrow();
+
+            if !program.can_move() {
+                return;
+            }
+
+            let Point { x, y } = program.position;
             let east = Point::new(x + 1, y);
             if level.passable(east) {
                 self.overlay.push((east, '→'.into()));

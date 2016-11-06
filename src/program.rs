@@ -4,15 +4,31 @@ use std::rc::Rc;
 use voodoo::color::ColorValue;
 use voodoo::window::{Point, TermCell, Window};
 
+pub struct ProgramTurnState {
+    pub moves_made: usize,
+    pub ability_used: bool,
+}
+
 pub struct Program {
     pub position: Point,
     tail: Vec<Point>,
     pub name: String,
     pub abilities: Vec<String>,
     pub max_tail: usize,
+    pub max_moves: usize,
+    pub turn_state: ProgramTurnState,
 }
 
 pub type ProgramRef = Rc<RefCell<Program>>;
+
+impl ProgramTurnState {
+    fn new() -> ProgramTurnState {
+        ProgramTurnState {
+            moves_made: 0,
+            ability_used: false,
+        }
+    }
+}
 
 impl Program {
     pub fn new(position: Point, name: &str) -> Program {
@@ -22,10 +38,22 @@ impl Program {
             name: name.to_owned(),
             abilities: vec![],
             max_tail: 4,
+            max_moves: 3,
+            turn_state: ProgramTurnState::new(),
         }
     }
 
+    pub fn can_move(&self) -> bool {
+        self.turn_state.moves_made < self.max_moves
+    }
+
     pub fn move_to(&mut self, point: Point) {
+        if !self.can_move() {
+            return;
+        }
+
+        self.turn_state.moves_made += 1;
+
         self.tail.push(self.position);
         if self.tail.len() >= self.max_tail {
             self.tail.remove(0);
