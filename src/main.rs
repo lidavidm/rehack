@@ -1,5 +1,6 @@
 extern crate termion;
 extern crate thread_scoped;
+extern crate time;
 extern crate voodoo;
 
 mod level;
@@ -45,9 +46,12 @@ const LEVEL_DESCR: [&'static str; 22] = [
 enum UiState {
     Unselected,
     Selected,
+    Damage(ProgramRef, usize),
 }
 
 enum UiEvent {
+    Tick,
+    Test,
     Click(Point),
     // Movement
 }
@@ -218,6 +222,38 @@ impl UiState {
                     Unselected
                 }
             }
+            (Damage(program, damage), Tick) => {
+                if damage == 0 {
+                    if map.highlight.is_some() {
+                        Selected
+                    }
+                    else {
+                        Unselected
+                    }
+                }
+                else {
+                    if program.borrow_mut().damage() {
+                        Damage(program, damage - 1)
+                    }
+                    else {
+                        // TODO: remove program as it died
+                        Damage(program, 0)
+                    }
+                }
+            }
+            (damage@Damage(_, _), _) => {
+                damage
+            }
+            (state, Tick) => { state }
+            (Selected, Test) => {
+                if let Some(ref program) = map.highlight {
+                    Damage(program.clone(), 2)
+                }
+                else {
+                    Selected
+                }
+            }
+            (state, Test) => { state },
         }
     }
 }
@@ -267,38 +303,55 @@ fn main() {
         })
     };
 
-    loop {
-        // TODO: use recv_timeout
-        let msg = rx.try_recv();
-        match msg {
-            Ok(evt) => {
-                match evt {
-                    Event::Key(Key::Char('q')) => break,
-                    Event::Mouse(me) => {
-                        match me {
-                            MouseEvent::Press(_, x, y) => {
-                                if let Some(p) = ui_modelview.map.from_global_frame(Point::new(x, y)) {
-                                    // TODO: if movement controls are active, translate the event
-                                    // use a method on MapView to get the actual UiEvent
-                                    ui_state = ui_state.next(
-                                        UiEvent::Click(p),
-                                        &mut level,
-                                        &mut ui_modelview,
-                                    );
-                                }
-                            },
-                            _ => (),
+    let mut t = time::precise_time_ns();
+    let mut dt = 0;
+
+    'main: loop {
+        loop {
+            // Handle all pending events
+            let msg = rx.try_recv();
+            match msg {
+                Ok(evt) => {
+                    match evt {
+                        Event::Key(Key::Char('q')) => break 'main,
+                        Event::Key(Key::Char(' ')) => {
+                            ui_state = ui_state.next(UiEvent::Test, &mut level, &mut ui_modelview);
+                        },
+                        Event::Mouse(me) => {
+                            match me {
+                                MouseEvent::Press(_, x, y) => {
+                                    if let Some(p) = ui_modelview.map.from_global_frame(Point::new(x, y)) {
+                                        ui_state = ui_state.next(
+                                            UiEvent::Click(p),
+                                            &mut level,
+                                            &mut ui_modelview,
+                                        );
+                                    }
+                                },
+                                _ => (),
+                            }
                         }
+                        _ => {}
                     }
-                    _ => {}
-                }
-                ui_modelview.info.refresh(stdout);
-                ui_modelview.map.display(&level);
-                ui_modelview.map.refresh(stdout);
-            },
-            Err(Disconnected) => break,
-            Err(Empty) => {},
+                },
+                Err(Disconnected) => break 'main,
+                Err(Empty) => break,
+            }
         }
+
+        let now = time::precise_time_ns();
+        dt += now - t;
+
+        // TODO: use constant
+        while dt >= 100000000 {
+            ui_state = ui_state.next(UiEvent::Tick, &mut level, &mut ui_modelview);
+            dt -= 100000000;
+        }
+
+        ui_modelview.info.refresh(stdout);
+        ui_modelview.map.display(&level);
+        ui_modelview.map.refresh(stdout);
+        t = now;
     }
     guard.join();
 }

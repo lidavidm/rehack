@@ -33,6 +33,16 @@ impl Program {
         self.position = point;
     }
 
+    pub fn damage(&mut self) -> bool {
+        if self.tail.len() > 0 {
+            self.tail.remove(0);
+            true
+        }
+        else {
+            false
+        }
+    }
+
     pub fn display_color(&self, color: ColorValue, window: &mut Window) {
         let mut prev: Option<Point> = None;
         let mut cells = self.tail.to_vec();
@@ -64,11 +74,6 @@ impl Program {
         let mut tc: TermCell = '◘'.into();
         tc.bg = Some(color);
         window.put_at(self.position, tc);
-        // let mut tc: TermCell = '+'.into();
-        // tc.bg = Some(color);
-        // for point in self.tail.iter() {
-        //     window.put_at(*point, tc);
-        // }
     }
 
     pub fn intersects(&self, point: Point) -> bool {

@@ -5,5 +5,6 @@ authors = ["David Li <li.davidm96@gmail.com>"]
 
 [dependencies]
 thread-scoped = "1.0"
+time = "0.1"
 termion = "1.1.2"
 voodoo = { path = '/home/lidavidm/Code/game-off-2016/voodoo' }
