@@ -242,7 +242,8 @@ impl UiState {
                         Damage(program, damage - 1)
                     }
                     else {
-                        // TODO: remove program as it died
+                        level.remove_program_at(program.borrow().position);
+                        map.clear_highlight();
                         Damage(program, 0)
                     }
                 }

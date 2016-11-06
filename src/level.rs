@@ -31,6 +31,11 @@ impl Level {
         self.enemy_programs.push(Rc::new(RefCell::new(program)));
     }
 
+    pub fn remove_program_at(&mut self, point: Point) {
+        self.player_programs.retain(|p| { p.borrow().position != point });
+        self.enemy_programs.retain(|p| { p.borrow().position != point });
+    }
+
     pub fn passable(&self, point: Point) -> bool {
         let cell = self.layout[(point.y - 1) as usize].chars().nth((point.x - 1) as usize);
         if cell != Some('.') {
