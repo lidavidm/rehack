@@ -260,7 +260,11 @@ impl UiState {
 
 fn main() {
     use std::sync::mpsc::TryRecvError::*;
+    use std::thread;
+    use std::time::Duration;
+
     use voodoo::terminal::{Mode, Terminal};
+
     let mut level = Level::new(&LEVEL_DESCR);
     level.add_player_program(Program::new(Point::new(11, 11), "Hack"));
     level.add_player_program(Program::new(Point::new(5, 12), "Hack"));
@@ -352,6 +356,8 @@ fn main() {
         ui_modelview.map.display(&level);
         ui_modelview.map.refresh(stdout);
         t = now;
+
+        thread::sleep(Duration::from_millis(100 - dt / 1000000));
     }
     guard.join();
 }
