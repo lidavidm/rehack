@@ -57,7 +57,8 @@ enum UiEvent {
     Quit,
     Tick,
     Test,
-    Click(Point),
+    ClickMap(Point),
+    ClickInfo(Point),
     // Movement
 }
 
@@ -82,7 +83,7 @@ impl UiState {
         let UiModelView { ref mut info, ref mut map } = *mv;
 
         match (self, event) {
-            (Unselected, Click(p)) => {
+            (Unselected, ClickMap(p)) => {
                 for program in level.player_programs.iter() {
                     if program.borrow().intersects(p) {
                         map.highlight(program.clone(), &level);
@@ -92,7 +93,7 @@ impl UiState {
                 }
                 Unselected
             }
-            (Selected, Click(p)) => {
+            (Selected, ClickMap(p)) => {
                 let result = map.translate_click(p);
                 if let Some(p) = result {
                     if let Some(ref mut program) = map.get_highlight() {
@@ -106,6 +107,11 @@ impl UiState {
                     info.clear();
                     Unselected
                 }
+            }
+            (Unselected, ClickInfo(_)) => Unselected,
+            (Selected, ClickInfo(p)) => {
+                info.translate_click(p);
+                Selected
             }
             (Damage(program, damage), Tick) => {
                 if damage == 0 {
@@ -163,7 +169,10 @@ impl State {
             (&State(PlayerTurn, _), Event::Key(Key::Char(' '))) => Some(UiEvent::Test),
             (&State(PlayerTurn, _), Event::Mouse(MouseEvent::Press(_, x, y))) => {
                 if let Some(p) = mv.ui_modelview.map.from_global_frame(Point::new(x, y)) {
-                    Some(UiEvent::Click(p))
+                    Some(UiEvent::ClickMap(p))
+                }
+                else if let Some(p) = mv.ui_modelview.info.from_global_frame(Point::new(x, y)) {
+                    Some(UiEvent::ClickInfo(p))
                 }
                 else {
                     None
@@ -198,7 +207,10 @@ impl State {
         use GameState::*;
         match event {
             UiEvent::Quit => State(Quit, ui_state),
-            click@UiEvent::Click(_) => {
+            click@UiEvent::ClickMap(_) => {
+                State(PlayerTurn, ui_state.next(click, level, &mut mv.ui_modelview))
+            }
+            click@UiEvent::ClickInfo(_) => {
                 State(PlayerTurn, ui_state.next(click, level, &mut mv.ui_modelview))
             }
             UiEvent::Tick | UiEvent::Test => {
