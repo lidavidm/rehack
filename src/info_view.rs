@@ -19,9 +19,8 @@ impl InfoView {
     }
 
     pub fn clear(&mut self) {
-        for col in 2..self.window.width - 2 {
-            self.window.put_at(Point::new(col, 2), ' ');
-        }
+        self.window.clear();
+        self.window.border();
     }
 
     pub fn display_program(&mut self, program: &Program) {
