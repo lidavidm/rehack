@@ -69,8 +69,6 @@ enum GameState {
     Quit,
 }
 
-
-
 struct UiModelView {
     info: InfoView,
     map: MapView,
@@ -119,13 +117,16 @@ impl UiState {
                     }
                 }
                 else {
-                    if program.borrow_mut().damage() {
-                        Damage(program.clone(), damage - 1)
+                    let new_ref = program.clone();
+                    let position = { program.borrow().position };
+                    let lived = { program.borrow_mut().damage() };
+                    if lived {
+                        Damage(new_ref, damage - 1)
                     }
                     else {
-                        level.remove_program_at(program.borrow().position);
+                        level.remove_program_at(position);
                         map.clear_highlight();
-                        Damage(program.clone(), 0)
+                        Damage(new_ref, 0)
                     }
                 }
             }
@@ -158,6 +159,7 @@ impl State {
         use GameState::*;
         match (self, event) {
             (_, Event::Key(Key::Char('q'))) => Some(UiEvent::Quit),
+            (&State(PlayerTurn, _), Event::Key(Key::Char(' '))) => Some(UiEvent::Test),
             (&State(PlayerTurn, _), Event::Mouse(MouseEvent::Press(_, x, y))) => {
                 if let Some(p) = mv.ui_modelview.map.from_global_frame(Point::new(x, y)) {
                     Some(UiEvent::Click(p))
@@ -183,6 +185,14 @@ impl State {
         }
     }
 
+    fn tick(self, level: &mut Level, mv: &mut GameModelView) -> State {
+        use GameState::*;
+        match self {
+            State(PlayerTurn, ui) => Self::next_player_turn(ui, UiEvent::Tick, level, mv),
+            _ => unimplemented!(),
+        }
+    }
+
     fn next_player_turn(ui_state: UiState, event: UiEvent, level: &mut Level, mv: &mut GameModelView) -> State {
         use GameState::*;
         match event {
@@ -190,7 +200,9 @@ impl State {
             click@UiEvent::Click(_) => {
                 State(PlayerTurn, ui_state.next(click, level, &mut mv.ui_modelview))
             }
-            _ => State(PlayerTurn, ui_state),
+            UiEvent::Tick | UiEvent::Test => {
+                State(PlayerTurn, ui_state.next(event, level, &mut mv.ui_modelview))
+            }
         }
     }
 }
@@ -273,8 +285,7 @@ fn main() {
 
         // TODO: use constant
         while dt >= 100000000 {
-            // state = state.next(UiEvent::Tick, &mut level, &mut mv);
-            // ui_state = ui_state.next(UiEvent::Tick, &mut level, &mut ui_modelview);
+            state = state.tick(&mut level, &mut mv);
             dt -= 100000000;
         }
 
