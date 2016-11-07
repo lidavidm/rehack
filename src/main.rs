@@ -50,6 +50,7 @@ enum UiState {
 }
 
 enum UiEvent {
+    Quit,
     Tick,
     Test,
     Click(Point),
@@ -240,12 +241,12 @@ impl UiState {
                 }
                 else {
                     if program.borrow_mut().damage() {
-                        Damage(program, damage - 1)
+                        Damage(program.clone(), damage - 1)
                     }
                     else {
                         level.remove_program_at(program.borrow().position);
                         map.clear_highlight();
-                        Damage(program, 0)
+                        Damage(program.clone(), 0)
                     }
                 }
             }
@@ -262,6 +263,7 @@ impl UiState {
                 }
             }
             (state, Test) => { state },
+            (state, Quit) => { state },
         }
     }
 }
@@ -273,39 +275,41 @@ struct GameModelView {
 struct State(GameState, UiState);
 
 impl State {
-    fn next(self, event: termion::event::Event, level: &mut Level, mv: &mut GameModelView) -> State {
+    fn translate_event(&self, event: termion::event::Event, level: &mut Level, mv: &mut GameModelView) -> Option<UiEvent> {
         use GameState::*;
-        match self {
-            State(PlayerTurn, ui) => Self::next_player_turn(ui, event, level, mv),
-            _ => unimplemented!(),
+        match (self, event) {
+            (_, Event::Key(Key::Char('q'))) => Some(UiEvent::Quit),
+            (&State(PlayerTurn, _), Event::Mouse(MouseEvent::Press(_, x, y))) => {
+                if let Some(p) = mv.ui_modelview.map.from_global_frame(Point::new(x, y)) {
+                    Some(UiEvent::Click(p))
+                }
+                else {
+                    None
+                }
+            }
+            _ => None,
         }
     }
 
-    fn next_player_turn(ui_state: UiState, event: termion::event::Event, level: &mut Level, mv: &mut GameModelView) -> State {
+    fn next(self, event: termion::event::Event, level: &mut Level, mv: &mut GameModelView) -> State {
+        use GameState::*;
+        if let Some(event) = self.translate_event(event, level, mv) {
+            match self {
+                State(PlayerTurn, ui) => Self::next_player_turn(ui, event, level, mv),
+                _ => unimplemented!(),
+            }
+        }
+        else {
+            self
+        }
+    }
+
+    fn next_player_turn(ui_state: UiState, event: UiEvent, level: &mut Level, mv: &mut GameModelView) -> State {
         use GameState::*;
         match event {
-            Event::Key(Key::Char('q')) => State(Quit, ui_state),
-            Event::Key(Key::Char(' ')) => {
-                let new_state = ui_state.next(UiEvent::Test, level, &mut mv.ui_modelview);
-                State(PlayerTurn, new_state)
-            },
-            Event::Mouse(me) => {
-                match me {
-                    MouseEvent::Press(_, x, y) => {
-                        if let Some(p) = mv.ui_modelview.map.from_global_frame(Point::new(x, y)) {
-                            let new_state = ui_state.next(
-                                UiEvent::Click(p),
-                                level,
-                                &mut mv.ui_modelview,
-                            );
-                            State(PlayerTurn, new_state)
-                        }
-                        else {
-                            State(PlayerTurn, ui_state)
-                        }
-                    },
-                    _ => State(PlayerTurn, ui_state),
-                }
+            UiEvent::Quit => State(Quit, ui_state),
+            click@UiEvent::Click(_) => {
+                State(PlayerTurn, ui_state.next(click, level, &mut mv.ui_modelview))
             }
             _ => State(PlayerTurn, ui_state),
         }
