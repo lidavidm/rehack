@@ -2,7 +2,7 @@ use voodoo::color::ColorValue;
 use voodoo::window::{Point, TermCell, Window};
 
 use level::Level;
-use program::{Program, ProgramRef};
+use program::{ProgramRef};
 
 pub struct MapView {
     window: Window,

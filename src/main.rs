@@ -15,7 +15,7 @@ use termion::event::{Key, Event, MouseEvent};
 use termion::input::{TermRead};
 
 use voodoo::color::ColorValue;
-use voodoo::window::{Point, TermCell, Window};
+use voodoo::window::{Point};
 
 use info_view::InfoView;
 use map_view::MapView;
@@ -63,10 +63,10 @@ enum UiEvent {
 }
 
 enum GameState {
-    Setup,
+    // Setup,
     PlayerTurn,
-    AITurn,
-    AIExecute,
+    // AITurn,
+    // AIExecute,
     Quit,
 }
 
@@ -250,11 +250,11 @@ fn main() {
     map_view.display(&level);
     map_view.refresh(stdout);
 
-    let mut ui_modelview = UiModelView {
+    let ui_modelview = UiModelView {
         info: info_view,
         map: map_view,
     };
-    let mut ui_state = UiState::Unselected;
+    let ui_state = UiState::Unselected;
 
     let mut state = State(GameState::PlayerTurn, ui_state);
     let mut mv = GameModelView {
