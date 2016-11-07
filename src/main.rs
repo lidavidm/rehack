@@ -113,6 +113,7 @@ impl UiState {
                         Selected
                     }
                     else {
+                        info.clear();
                         Unselected
                     }
                 }
