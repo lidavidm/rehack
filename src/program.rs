@@ -36,7 +36,7 @@ impl Program {
             position: position,
             tail: vec![],
             name: name.to_owned(),
-            abilities: vec![],
+            abilities: vec!["Bitblast".to_owned()],
             max_tail: 4,
             max_moves: 3,
             turn_state: ProgramTurnState::new(),
