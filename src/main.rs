@@ -61,6 +61,7 @@ enum GameState {
     PlayerTurn,
     AITurn,
     AIExecute,
+    Quit,
 }
 
 struct InfoView {
@@ -248,8 +249,8 @@ impl UiState {
                     }
                 }
             }
-            (damage@Damage(_, _), _) => {
-                damage
+            (Damage(program, damage), _) => {
+                Damage(program, damage)
             }
             (state, Tick) => { state }
             (Selected, Test) => {
@@ -261,6 +262,52 @@ impl UiState {
                 }
             }
             (state, Test) => { state },
+        }
+    }
+}
+
+struct GameModelView {
+    ui_modelview: UiModelView,
+}
+
+struct State(GameState, UiState);
+
+impl State {
+    fn next(self, event: termion::event::Event, level: &mut Level, mv: &mut GameModelView) -> State {
+        use GameState::*;
+        match self {
+            State(PlayerTurn, ui) => Self::next_player_turn(ui, event, level, mv),
+            _ => unimplemented!(),
+        }
+    }
+
+    fn next_player_turn(ui_state: UiState, event: termion::event::Event, level: &mut Level, mv: &mut GameModelView) -> State {
+        use GameState::*;
+        match event {
+            Event::Key(Key::Char('q')) => State(Quit, ui_state),
+            Event::Key(Key::Char(' ')) => {
+                let new_state = ui_state.next(UiEvent::Test, level, &mut mv.ui_modelview);
+                State(PlayerTurn, new_state)
+            },
+            Event::Mouse(me) => {
+                match me {
+                    MouseEvent::Press(_, x, y) => {
+                        if let Some(p) = mv.ui_modelview.map.from_global_frame(Point::new(x, y)) {
+                            let new_state = ui_state.next(
+                                UiEvent::Click(p),
+                                level,
+                                &mut mv.ui_modelview,
+                            );
+                            State(PlayerTurn, new_state)
+                        }
+                        else {
+                            State(PlayerTurn, ui_state)
+                        }
+                    },
+                    _ => State(PlayerTurn, ui_state),
+                }
+            }
+            _ => State(PlayerTurn, ui_state),
         }
     }
 }
@@ -301,6 +348,11 @@ fn main() {
     };
     let mut ui_state = UiState::Unselected;
 
+    let mut state = State(GameState::PlayerTurn, ui_state);
+    let mut mv = GameModelView {
+        ui_modelview: ui_modelview,
+    };
+
     let (tx, rx) = channel();
     let guard = unsafe {
         thread_scoped::scoped(move || {
@@ -323,26 +375,9 @@ fn main() {
             let msg = rx.try_recv();
             match msg {
                 Ok(evt) => {
-                    match evt {
-                        Event::Key(Key::Char('q')) => break 'main,
-                        Event::Key(Key::Char(' ')) => {
-                            ui_state = ui_state.next(UiEvent::Test, &mut level, &mut ui_modelview);
-                        },
-                        Event::Mouse(me) => {
-                            match me {
-                                MouseEvent::Press(_, x, y) => {
-                                    if let Some(p) = ui_modelview.map.from_global_frame(Point::new(x, y)) {
-                                        ui_state = ui_state.next(
-                                            UiEvent::Click(p),
-                                            &mut level,
-                                            &mut ui_modelview,
-                                        );
-                                    }
-                                },
-                                _ => (),
-                            }
-                        }
-                        _ => {}
+                    state = state.next(evt, &mut level, &mut mv);
+                    if let State(GameState::Quit, _) = state {
+                        break 'main;
                     }
                 },
                 Err(Disconnected) => break 'main,
@@ -355,13 +390,14 @@ fn main() {
 
         // TODO: use constant
         while dt >= 100000000 {
-            ui_state = ui_state.next(UiEvent::Tick, &mut level, &mut ui_modelview);
+            // state = state.next(UiEvent::Tick, &mut level, &mut mv);
+            // ui_state = ui_state.next(UiEvent::Tick, &mut level, &mut ui_modelview);
             dt -= 100000000;
         }
 
-        ui_modelview.info.refresh(stdout);
-        ui_modelview.map.display(&level);
-        ui_modelview.map.refresh(stdout);
+        mv.ui_modelview.info.refresh(stdout);
+        mv.ui_modelview.map.display(&level);
+        mv.ui_modelview.map.refresh(stdout);
         t = now;
 
         thread::sleep(Duration::from_millis(100 - dt / 1000000));
