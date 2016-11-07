@@ -3,6 +3,8 @@ extern crate thread_scoped;
 extern crate time;
 extern crate voodoo;
 
+mod info_view;
+mod map_view;
 mod level;
 mod program;
 
@@ -15,6 +17,8 @@ use termion::input::{TermRead};
 use voodoo::color::ColorValue;
 use voodoo::window::{Point, TermCell, Window};
 
+use info_view::InfoView;
+use map_view::MapView;
 use level::Level;
 use program::{Program, ProgramRef};
 
@@ -65,123 +69,7 @@ enum GameState {
     Quit,
 }
 
-struct InfoView {
-    window: Window,
-}
 
-impl InfoView {
-    fn new(window: Window) -> InfoView {
-        InfoView {
-            window: window,
-        }
-    }
-
-    fn refresh(&mut self, stdout: &mut std::io::Stdout) {
-        self.window.refresh(stdout);
-    }
-
-    fn clear(&mut self) {
-        for col in 2..self.window.width - 2 {
-            self.window.put_at(Point::new(col, 2), ' ');
-        }
-    }
-
-    fn display_program(&mut self, program: &Program) {
-        self.window.print_at(Point::new(2, 2), &program.name);
-    }
-}
-
-struct MapView {
-    window: Window,
-    highlight: Option<ProgramRef>,
-    overlay: Vec<(Point, TermCell)>,
-}
-
-impl MapView {
-    fn new(window: Window) -> MapView {
-        MapView {
-            window: window,
-            highlight: None,
-            overlay: Vec::new(),
-        }
-    }
-
-    fn from_global_frame(&self, p: Point) -> Option<Point> {
-        self.window.position.from_global_frame(p)
-    }
-
-    fn display(&mut self, level: &Level) {
-        for (y, line) in level.layout.iter().enumerate() {
-            let y = y + 1;
-            for (x, tile) in line.chars().enumerate() {
-                let x = x + 1;
-                match Level::convert(tile) {
-                    Some(c) => self.window.put_at(Point::new(x as u16, y as u16), c),
-                    None => {},
-                }
-            }
-        }
-
-        for program in level.player_programs.iter() {
-            program.borrow().display_color(ColorValue::Green, &mut self.window);
-        }
-
-        for program in level.enemy_programs.iter() {
-            program.borrow().display_color(ColorValue::Red, &mut self.window);
-        }
-
-        if let Some(ref program) = self.highlight {
-            program.borrow().display_color(ColorValue::Blue, &mut self.window);
-        }
-
-        for &(p, c) in self.overlay.iter() {
-            self.window.put_at(p, c);
-        }
-    }
-
-    fn refresh(&mut self, stdout: &mut std::io::Stdout) {
-        self.window.refresh(stdout);
-    }
-
-    fn highlight(&mut self, program: ProgramRef, level: &Level) {
-        self.highlight = Some(program.clone());
-        self.update_highlight(level);
-    }
-
-    fn update_highlight(&mut self, level: &Level) {
-        if let Some(ref program) = self.highlight {
-            self.overlay.clear();
-            let program = program.borrow();
-
-            if !program.can_move() {
-                return;
-            }
-
-            let Point { x, y } = program.position;
-            let east = Point::new(x + 1, y);
-            if level.passable(east) {
-                self.overlay.push((east, '→'.into()));
-            }
-            let west = Point::new(x - 1, y);
-            if level.passable(west) {
-                self.overlay.push((west, '←'.into()));
-            }
-            let north = Point::new(x, y - 1);
-            if level.passable(north) {
-                self.overlay.push((north, '↑'.into()));
-            }
-            let south = Point::new(x, y + 1);
-            if level.passable(south) {
-                self.overlay.push((south, '↓'.into()));
-            }
-        }
-    }
-
-    fn clear_highlight(&mut self) {
-        self.highlight = None;
-        self.overlay.clear();
-    }
-}
 
 struct UiModelView {
     info: InfoView,
@@ -189,15 +77,6 @@ struct UiModelView {
 }
 
 impl UiState {
-    fn translate_click(click: Point, map: &MapView) -> Option<Point> {
-        for &(point, _) in map.overlay.iter() {
-            if click == point {
-                return Some(point);
-            }
-        }
-        None
-    }
-
     fn next(self, event: UiEvent, level: &mut Level, mv: &mut UiModelView) -> UiState {
         use UiEvent::*;
         use UiState::*;
@@ -216,9 +95,9 @@ impl UiState {
                 Unselected
             }
             (Selected, Click(p)) => {
-                let result = Self::translate_click(p, map);
+                let result = map.translate_click(p);
                 if let Some(p) = result {
-                    if let Some(ref mut program) = map.highlight {
+                    if let Some(ref mut program) = map.get_highlight() {
                         program.borrow_mut().move_to(p);
                     }
                     map.update_highlight(&level);
@@ -232,7 +111,7 @@ impl UiState {
             }
             (Damage(program, damage), Tick) => {
                 if damage == 0 {
-                    if map.highlight.is_some() {
+                    if map.get_highlight().is_some() {
                         Selected
                     }
                     else {
@@ -255,7 +134,7 @@ impl UiState {
             }
             (state, Tick) => { state }
             (Selected, Test) => {
-                if let Some(ref program) = map.highlight {
+                if let Some(ref program) = map.get_highlight() {
                     Damage(program.clone(), 2)
                 }
                 else {
