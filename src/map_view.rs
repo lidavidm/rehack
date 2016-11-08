@@ -76,6 +76,10 @@ impl MapView {
         self.update_highlight(level);
     }
 
+    pub fn clear_range(&mut self) {
+        self.highlight_range = None;
+    }
+
     pub fn update_highlight(&mut self, level: &Level) {
         if let Some(ref program) = self.highlight {
             self.overlay.clear();
@@ -91,8 +95,11 @@ impl MapView {
                             continue;
                         }
                         if dx.abs() + dy.abs() <= range {
-                            // TODO: also check whether there is a target there, etc.
-                            self.overlay.push((Point::new((x as isize + dx) as u16, (y as isize + dy) as u16), 'x'.into()));
+                            let p = Point::new((x as isize + dx) as u16, (y as isize + dy) as u16);
+                            if level.passable(p) {
+                                // TODO: also check whether there is a target there, etc.
+                                self.overlay.push((p, 'x'.into()));
+                            }
                         }
                     }
                 }

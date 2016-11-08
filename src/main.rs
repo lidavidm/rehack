@@ -48,6 +48,7 @@ const LEVEL_DESCR: [&'static str; 20] = [
 enum UiState {
     Unselected,
     Selected,
+    SelectTarget,
     Damage(ProgramRef, usize),
 }
 
@@ -116,8 +117,38 @@ impl UiState {
                             map.highlight_range(range, level);
                         }
                     }
+                    return SelectTarget;
                 }
                 Selected
+            }
+            (SelectTarget, ClickMap(p)) => {
+                let result = map.translate_click(p);
+                if let Some(p) = result {
+                    SelectTarget
+                }
+                else {
+                    map.clear_range();
+                    map.update_highlight(level);
+                    Selected
+                }
+            }
+            (SelectTarget, ClickInfo(p)) => {
+                let result = info.translate_click(p);
+                if let Some(ability) = result {
+                    // TODO: refactor this out
+                    match ability {
+                        Ability::Destroy { damage, range } => {
+                            map.set_help(format!("Select target. Damage: 0x{:x} Range: 0x{:x}", damage, range));
+                            map.highlight_range(range, level);
+                        }
+                    }
+                    SelectTarget
+                }
+                else {
+                    map.clear_range();
+                    map.update_highlight(level);
+                    Selected
+                }
             }
             (Damage(program, damage), Tick) => {
                 if damage == 0 {
