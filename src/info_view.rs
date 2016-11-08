@@ -72,4 +72,9 @@ impl InfoView {
 
         self.selected_ability.map(|(_, ability)| ability)
     }
+
+    pub fn clear_ability(&mut self) {
+        self.selected_ability = None;
+        self.display_abilities();
+    }
 }

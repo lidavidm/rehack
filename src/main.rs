@@ -123,12 +123,16 @@ impl UiState {
             }
             (SelectTarget, ClickMap(p)) => {
                 let result = map.translate_click(p);
+                info.clear_ability();
+                map.clear_range();
+                map.update_highlight(level);
                 if let Some(p) = result {
-                    SelectTarget
+                    match level.contents_of(p) {
+                        level::CellContents::Program(p) => Damage(p, 2),
+                        _ => Selected,
+                    }
                 }
                 else {
-                    map.clear_range();
-                    map.update_highlight(level);
                     Selected
                 }
             }
