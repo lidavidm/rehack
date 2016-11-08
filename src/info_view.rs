@@ -41,7 +41,7 @@ impl InfoView {
     }
 
     pub fn display_abilities(&mut self) {
-        let mut y = 5;
+        let mut y = 6;
         for (ability_number, &(ref name, _)) in self.ability_list.iter().enumerate() {
             let mut f: FormattedString = name.into();
             f.bg = if let Some((offset, _)) = self.selected_ability {
@@ -60,6 +60,7 @@ impl InfoView {
     // TODO: take a ProgramRef and store it (maybe a weak reference)
     pub fn display_program(&mut self, program: &Program) {
         self.window.print_at(Point::new(2, 2), &program.name);
+        self.window.print_at(Point::new(2, 3), "Moves: 3/3");
 
         self.window.print_at(Point::new(2, 4), "Abilities:");
         self.ability_list.extend(program.abilities.iter().cloned());
@@ -70,7 +71,7 @@ impl InfoView {
     // TODO: return the ability range or something? Ability descriptor
     pub fn translate_click(&mut self, click: Point) -> Option<Ability> {
         for (offset, &(_, ability)) in self.ability_list.iter().enumerate() {
-            if click.y == 5 + offset as u16 {
+            if click.y == 6 + offset as u16 {
                 self.selected_ability = Some((offset, ability));
                 break;
             }
