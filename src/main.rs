@@ -58,13 +58,14 @@ enum UiEvent {
     Test,
     ClickMap(Point),
     ClickInfo(Point),
-    // Movement
+    EndTurn,
 }
 
 enum GameState {
     // Setup,
     PlayerTurn,
-    // AITurn,
+    AITurnTransition,
+    AITurn,
     // AIExecute,
     Quit,
 }
@@ -149,6 +150,7 @@ impl UiState {
                     SelectTarget
                 }
                 else {
+                    info.clear_ability();
                     map.clear_range();
                     map.update_highlight(level);
                     Selected
@@ -190,8 +192,7 @@ impl UiState {
                     Selected
                 }
             }
-            (state, Test) => { state },
-            (state, Quit) => { state },
+            (state, Test) | (state, Quit) | (state, EndTurn) => { state },
         };
 
         if let Unselected = result {
@@ -219,7 +220,12 @@ impl State {
                     Some(UiEvent::ClickMap(p))
                 }
                 else if let Some(p) = mv.ui_modelview.info.from_global_frame(Point::new(x, y)) {
-                    Some(UiEvent::ClickInfo(p))
+                    if p.y == 23 {
+                        Some(UiEvent::EndTurn)
+                    }
+                    else {
+                        Some(UiEvent::ClickInfo(p))
+                    }
                 }
                 else {
                     None
@@ -232,8 +238,9 @@ impl State {
     fn next(self, event: termion::event::Event, level: &mut Level, mv: &mut GameModelView) -> State {
         use GameState::*;
         if let Some(event) = self.translate_event(event, level, mv) {
-            match self {
-                State(PlayerTurn, ui) => Self::next_player_turn(ui, event, level, mv),
+            match (self, event) {
+                (State(PlayerTurn, ui), UiEvent::EndTurn) => State(AITurnTransition, ui),
+                (State(PlayerTurn, ui), event) => Self::next_player_turn(ui, event, level, mv),
                 _ => unimplemented!(),
             }
         }
@@ -246,6 +253,11 @@ impl State {
         use GameState::*;
         match self {
             State(PlayerTurn, ui) => Self::next_player_turn(ui, UiEvent::Tick, level, mv),
+            State(AITurnTransition, ui) => {
+                begin_turn(level, mv);
+                State(AITurn, ui)
+            },
+            State(AITurn, _) => State(PlayerTurn, UiState::Unselected),
             _ => unimplemented!(),
         }
     }
@@ -263,8 +275,17 @@ impl State {
             UiEvent::Tick | UiEvent::Test => {
                 State(PlayerTurn, ui_state.next(event, level, &mut mv.ui_modelview))
             }
+            UiEvent::EndTurn => unreachable!(),
         }
     }
+}
+
+fn begin_turn(level: &mut Level, mv: &mut GameModelView) {
+    mv.ui_modelview.info.clear();
+    mv.ui_modelview.map.clear_range();
+    mv.ui_modelview.map.clear_highlight();
+    mv.ui_modelview.map.update_highlight(level);
+    level.begin_turn();
 }
 
 fn main() {

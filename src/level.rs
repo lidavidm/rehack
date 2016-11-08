@@ -42,6 +42,12 @@ impl Level {
         self.enemy_programs.retain(|p| { p.borrow().position != point });
     }
 
+    pub fn begin_turn(&mut self) {
+        for program in self.player_programs.iter().chain(self.enemy_programs.iter()) {
+            program.borrow_mut().begin_turn();
+        }
+    }
+
     pub fn passable(&self, point: Point) -> bool {
         let cell = self.layout[(point.y - 1) as usize].chars().nth((point.x - 1) as usize);
         if cell != Some('.') {

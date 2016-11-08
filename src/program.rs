@@ -48,6 +48,11 @@ impl Program {
         }
     }
 
+    pub fn begin_turn(&mut self) {
+        self.turn_state.moves_made = 0;
+        self.turn_state.ability_used = false;
+    }
+
     pub fn can_move(&self) -> bool {
         self.turn_state.moves_made < self.max_moves
     }
