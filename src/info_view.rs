@@ -10,7 +10,11 @@ pub struct InfoView {
 }
 
 impl InfoView {
-    pub fn new(window: Window) -> InfoView {
+    pub fn new(mut window: Window) -> InfoView {
+        let mut f: FormattedString = "     End Turn     ".into();
+        f.bg = Some(ColorValue::Magenta);
+        window.print_at(Point::new(2, 23), f);
+
         InfoView {
             window: window,
             ability_list: Vec::new(),
