@@ -3,6 +3,7 @@ extern crate thread_scoped;
 extern crate time;
 extern crate voodoo;
 
+mod ai;
 mod info_view;
 mod map_view;
 mod level;
@@ -68,12 +69,6 @@ enum GameState {
     AITurn,
     // AIExecute,
     Quit,
-}
-
-struct AIChoice {
-    score: isize,
-    ability: Ability,
-    target: ProgramRef,
 }
 
 struct UiModelView {
@@ -264,51 +259,32 @@ impl State {
             State(AITurnTransition, _) => {
                 begin_turn(level, mv);
                 State(AITurn, UiState::Unselected)
-            },
-            State(AITurn, _) => {
-                for program in level.enemy_programs.iter() {
-                    let position = { program.borrow().position };
-                    let Point { x, y } = position;
-                    let abilities = { program.borrow().abilities.clone() };
-                    let mut choices = vec![];
-
-                    for (_, ability) in abilities {
-                        for reachable in ability.reachable_tiles(position) {
-                            match level.contents_of(reachable) {
-                                level::CellContents::Program(target) => {
-                                    choices.push(AIChoice {
-                                        score: 100,
-                                        ability: ability,
-                                        target: target,
-                                    });
-                                }
-                                _ => {},
-                            }
-                        }
-                    }
-                    
-                    let east = Point::new(x + 1, y);
-                    if level.passable(east) {
-                        program.borrow_mut().move_to(east);
-                        continue;
-                    }
-                    let west = Point::new(x - 1, y);
-                    if level.passable(west) {
-                        program.borrow_mut().move_to(west);
-                        continue;
-                    }
-                    let north = Point::new(x, y - 1);
-                    if level.passable(north) {
-                        program.borrow_mut().move_to(north);
-                        continue;
-                    }
-                    let south = Point::new(x, y + 1);
-                    if level.passable(south) {
-                        program.borrow_mut().move_to(south);
-                        continue;
-                    }
+            }
+            State(AITurn, UiState::Damage(program, damage)) => {
+                let ui_state = if damage == 0 {
+                    UiState::Unselected
                 }
-                State(PlayerTurn, UiState::Unselected)
+                else {
+                    let new_ref = program.clone();
+                    let position = { program.borrow().position };
+                    let lived = { program.borrow_mut().damage() };
+                    if lived {
+                        UiState::Damage(new_ref, damage - 1)
+                    }
+                    else {
+                        level.remove_program_at(position);
+                        UiState::Damage(new_ref, 0)
+                    }
+                };
+                State(AITurn, ui_state)
+            }
+            State(AITurn, _) => {
+                if let Some((target, damage)) = ai::ai_tick(level, &mut mv.ui_modelview.map) {
+                    State(AITurn, UiState::Damage(target, damage))
+                }
+                else {
+                    State(PlayerTurn, UiState::Unselected)
+                }
             },
             _ => unimplemented!(),
         }
