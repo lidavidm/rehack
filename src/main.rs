@@ -113,6 +113,7 @@ impl UiState {
                     match ability {
                         Ability::Destroy { damage, range } => {
                             map.set_help(format!("Select target. Damage: 0x{:x} Range: 0x{:x}", damage, range));
+                            map.highlight_range(range, level);
                         }
                     }
                 }

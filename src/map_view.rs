@@ -7,6 +7,7 @@ use program::{ProgramRef};
 pub struct MapView {
     window: Window,
     highlight: Option<ProgramRef>,
+    highlight_range: Option<usize>,
     overlay: Vec<(Point, TermCell)>,
     help: Option<String>,
 }
@@ -16,6 +17,7 @@ impl MapView {
         MapView {
             window: window,
             highlight: None,
+            highlight_range: None,
             overlay: Vec::new(),
             help: None,
         }
@@ -69,31 +71,53 @@ impl MapView {
         self.update_highlight(level);
     }
 
+    pub fn highlight_range(&mut self, range: usize, level: &Level) {
+        self.highlight_range = Some(range);
+        self.update_highlight(level);
+    }
+
     pub fn update_highlight(&mut self, level: &Level) {
         if let Some(ref program) = self.highlight {
             self.overlay.clear();
             let program = program.borrow();
-
-            if !program.can_move() {
-                return;
-            }
-
             let Point { x, y } = program.position;
-            let east = Point::new(x + 1, y);
-            if level.passable(east) {
-                self.overlay.push((east, '→'.into()));
+
+            if let Some(range) = self.highlight_range {
+                let range = range as isize;
+
+                for dx in -range..range + 1 {
+                    for dy in -range..range + 1 {
+                        if dx == 0 && dy == 0 {
+                            continue;
+                        }
+                        if dx.abs() + dy.abs() <= range {
+                            // TODO: also check whether there is a target there, etc.
+                            self.overlay.push((Point::new((x as isize + dx) as u16, (y as isize + dy) as u16), 'x'.into()));
+                        }
+                    }
+                }
             }
-            let west = Point::new(x - 1, y);
-            if level.passable(west) {
-                self.overlay.push((west, '←'.into()));
-            }
-            let north = Point::new(x, y - 1);
-            if level.passable(north) {
-                self.overlay.push((north, '↑'.into()));
-            }
-            let south = Point::new(x, y + 1);
-            if level.passable(south) {
-                self.overlay.push((south, '↓'.into()));
+            else {
+                if !program.can_move() {
+                    return;
+                }
+
+                let east = Point::new(x + 1, y);
+                if level.passable(east) {
+                    self.overlay.push((east, '→'.into()));
+                }
+                let west = Point::new(x - 1, y);
+                if level.passable(west) {
+                    self.overlay.push((west, '←'.into()));
+                }
+                let north = Point::new(x, y - 1);
+                if level.passable(north) {
+                    self.overlay.push((north, '↑'.into()));
+                }
+                let south = Point::new(x, y + 1);
+                if level.passable(south) {
+                    self.overlay.push((south, '↓'.into()));
+                }
             }
         }
     }
