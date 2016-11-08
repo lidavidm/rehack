@@ -1,12 +1,12 @@
 use voodoo::color::ColorValue;
 use voodoo::window::{FormattedString, Point, Window};
 
-use program::Program;
+use program::{Ability, Program};
 
 pub struct InfoView {
     window: Window,
-    ability_list: Vec<String>,
-    selected_ability: Option<usize>,
+    ability_list: Vec<(String, Ability)>,
+    selected_ability: Option<(usize, Ability)>,
 }
 
 impl InfoView {
@@ -35,9 +35,9 @@ impl InfoView {
 
     pub fn display_abilities(&mut self) {
         let mut y = 5;
-        for (ability_number, ability) in self.ability_list.iter().enumerate() {
-            let mut f: FormattedString = ability.into();
-            f.bg = if let Some(offset) = self.selected_ability {
+        for (ability_number, &(ref name, _)) in self.ability_list.iter().enumerate() {
+            let mut f: FormattedString = name.into();
+            f.bg = if let Some((offset, _)) = self.selected_ability {
                 if offset == ability_number {
                     Some(ColorValue::Red)
                 }
@@ -54,20 +54,20 @@ impl InfoView {
         self.window.print_at(Point::new(2, 2), &program.name);
 
         self.window.print_at(Point::new(2, 4), "Abilities:");
-        for ability in program.abilities.iter() {
-            self.ability_list.push(ability.to_owned());
-        }
+        self.ability_list.extend(program.abilities.iter().cloned());
 
         self.display_abilities();
     }
 
-    pub fn translate_click(&mut self, click: Point) {
-        for (offset, _) in self.ability_list.iter().enumerate() {
+    pub fn translate_click(&mut self, click: Point) -> Option<Ability> {
+        for (offset, &(_, ability)) in self.ability_list.iter().enumerate() {
             if click.y == 5 + offset as u16 {
-                self.selected_ability = Some(offset);
+                self.selected_ability = Some((offset, ability));
                 break;
             }
         }
         self.display_abilities();
+
+        self.selected_ability.map(|(_, ability)| ability)
     }
 }

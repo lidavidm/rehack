@@ -20,7 +20,7 @@ use voodoo::window::{Point};
 use info_view::InfoView;
 use map_view::MapView;
 use level::Level;
-use program::{Program, ProgramRef};
+use program::{Ability, Program, ProgramRef};
 
 const LEVEL_DESCR: [&'static str; 20] = [
     "                                                          ",
@@ -109,7 +109,13 @@ impl UiState {
             }
             (Unselected, ClickInfo(_)) => Unselected,
             (Selected, ClickInfo(p)) => {
-                info.translate_click(p);
+                if let Some(ability) = info.translate_click(p) {
+                    match ability {
+                        Ability::Destroy { damage, range } => {
+                            map.set_help(format!("Select target. Damage: 0x{:x} Range: 0x{:x}", damage, range));
+                        }
+                    }
+                }
                 Selected
             }
             (Damage(program, damage), Tick) => {

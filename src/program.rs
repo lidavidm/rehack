@@ -4,6 +4,11 @@ use std::rc::Rc;
 use voodoo::color::ColorValue;
 use voodoo::window::{Point, TermCell, Window};
 
+#[derive(Clone,Copy,Debug)]
+pub enum Ability {
+    Destroy { damage: usize, range: usize },
+}
+
 pub struct ProgramTurnState {
     pub moves_made: usize,
     pub ability_used: bool,
@@ -13,7 +18,7 @@ pub struct Program {
     pub position: Point,
     tail: Vec<Point>,
     pub name: String,
-    pub abilities: Vec<String>,
+    pub abilities: Vec<(String, Ability)>,
     pub max_tail: usize,
     pub max_moves: usize,
     pub turn_state: ProgramTurnState,
@@ -36,7 +41,7 @@ impl Program {
             position: position,
             tail: vec![],
             name: name.to_owned(),
-            abilities: vec!["Bitblast".to_owned()],
+            abilities: vec![("Bitblast".to_owned(), Ability::Destroy { damage: 2, range: 1 })],
             max_tail: 4,
             max_moves: 3,
             turn_state: ProgramTurnState::new(),
