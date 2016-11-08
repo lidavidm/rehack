@@ -10,6 +10,12 @@ pub struct Level {
     pub enemy_programs: Vec<ProgramRef>,
 }
 
+pub enum CellContents {
+    Unpassable,
+    Empty,
+    Program(ProgramRef),
+}
+
 impl Level {
     pub fn new(description: &[&str; 20]) -> Level {
         let mut layout = Vec::new();
@@ -49,6 +55,19 @@ impl Level {
         }
 
         return true;
+    }
+
+    pub fn contents_of(&self, point: Point) -> CellContents {
+        for program in self.player_programs.iter().chain(self.enemy_programs.iter()) {
+            if program.borrow().intersects(point) {
+                return CellContents::Program(program.clone());
+            }
+        }
+
+        match self.layout[(point.y - 1) as usize].chars().nth((point.x - 1) as usize) {
+            Some('.') => CellContents::Empty,
+            _ => CellContents::Unpassable,
+        }
     }
 
     // TODO: need char -> Tile -> DisplayChar

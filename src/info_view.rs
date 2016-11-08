@@ -50,6 +50,7 @@ impl InfoView {
         }
     }
 
+    // TODO: take a ProgramRef and store it (maybe a weak reference)
     pub fn display_program(&mut self, program: &Program) {
         self.window.print_at(Point::new(2, 2), &program.name);
 
@@ -59,6 +60,7 @@ impl InfoView {
         self.display_abilities();
     }
 
+    // TODO: return the ability range or something? Ability descriptor
     pub fn translate_click(&mut self, click: Point) -> Option<Ability> {
         for (offset, &(_, ability)) in self.ability_list.iter().enumerate() {
             if click.y == 5 + offset as u16 {

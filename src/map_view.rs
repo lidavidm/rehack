@@ -1,7 +1,7 @@
 use voodoo::color::ColorValue;
 use voodoo::window::{Point, TermCell, Window};
 
-use level::Level;
+use level::{CellContents, Level};
 use program::{ProgramRef};
 
 pub struct MapView {
@@ -83,8 +83,8 @@ impl MapView {
     pub fn update_highlight(&mut self, level: &Level) {
         if let Some(ref program) = self.highlight {
             self.overlay.clear();
-            let program = program.borrow();
-            let Point { x, y } = program.position;
+            let position = { program.borrow().position };
+            let Point { x, y } = position;
 
             if let Some(range) = self.highlight_range {
                 let range = range as isize;
@@ -96,16 +96,28 @@ impl MapView {
                         }
                         if dx.abs() + dy.abs() <= range {
                             let p = Point::new((x as isize + dx) as u16, (y as isize + dy) as u16);
-                            if level.passable(p) {
-                                // TODO: also check whether there is a target there, etc.
-                                self.overlay.push((p, 'x'.into()));
+                            if let Some(tc) = match level.contents_of(p) {
+                                CellContents::Empty => Some('·'.into()),
+                                CellContents::Unpassable => None,
+                                CellContents::Program(p) => {
+                                    if p.borrow().position == position {
+                                        None
+                                    }
+                                    else {
+                                        Some('X'.into())
+                                    }
+                                },
+                            } {
+                                let mut tc: TermCell = tc;
+                                tc.bg = Some(ColorValue::Magenta);
+                                self.overlay.push((p, tc));
                             }
                         }
                     }
                 }
             }
             else {
-                if !program.can_move() {
+                if !program.borrow().can_move() {
                     return;
                 }
 
