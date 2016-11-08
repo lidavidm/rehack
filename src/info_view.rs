@@ -35,6 +35,9 @@ impl InfoView {
         self.selected_ability = None;
         self.window.clear();
         self.window.border();
+        let mut f: FormattedString = "     End Turn     ".into();
+        f.bg = Some(ColorValue::Magenta);
+        self.window.print_at(Point::new(2, 23), f);
     }
 
     pub fn display_abilities(&mut self) {
