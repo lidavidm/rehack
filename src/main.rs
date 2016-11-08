@@ -22,9 +22,7 @@ use map_view::MapView;
 use level::Level;
 use program::{Program, ProgramRef};
 
-const LEVEL_DESCR: [&'static str; 22] = [
-    "                                                          ",
-    "                                                          ",
+const LEVEL_DESCR: [&'static str; 20] = [
     "                                                          ",
     "                                                          ",
     "          .........................                       ",
@@ -82,12 +80,13 @@ impl UiState {
 
         let UiModelView { ref mut info, ref mut map } = *mv;
 
-        match (self, event) {
+        let result = match (self, event) {
             (Unselected, ClickMap(p)) => {
                 for program in level.player_programs.iter() {
                     if program.borrow().intersects(p) {
                         map.highlight(program.clone(), &level);
                         info.display_program(&program.borrow());
+                        map.set_help("Click arrows to move; click ability at left to use");
                         return Selected;
                     }
                 }
@@ -151,7 +150,13 @@ impl UiState {
             }
             (state, Test) => { state },
             (state, Quit) => { state },
+        };
+
+        if let Unselected = result {
+            map.set_help("Click program to control it");
         }
+
+        result
     }
 }
 
@@ -228,9 +233,9 @@ fn main() {
     use voodoo::terminal::{Mode, Terminal};
 
     let mut level = Level::new(&LEVEL_DESCR);
-    level.add_player_program(Program::new(Point::new(11, 11), "Hack"));
-    level.add_player_program(Program::new(Point::new(5, 12), "Hack"));
-    level.add_enemy_program(Program::new(Point::new(7, 12), "Hack"));
+    level.add_player_program(Program::new(Point::new(11, 9), "Hack"));
+    level.add_player_program(Program::new(Point::new(5, 10), "Hack"));
+    level.add_enemy_program(Program::new(Point::new(7, 10), "Hack"));
 
     let mut terminal = Terminal::new();
     terminal.cursor(Mode::Disabled);

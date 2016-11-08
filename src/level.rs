@@ -11,7 +11,7 @@ pub struct Level {
 }
 
 impl Level {
-    pub fn new(description: &[&str; 22]) -> Level {
+    pub fn new(description: &[&str; 20]) -> Level {
         let mut layout = Vec::new();
         for s in description.iter() {
             layout.push(s.to_string());

@@ -8,6 +8,7 @@ pub struct MapView {
     window: Window,
     highlight: Option<ProgramRef>,
     overlay: Vec<(Point, TermCell)>,
+    help: Option<String>,
 }
 
 impl MapView {
@@ -16,6 +17,7 @@ impl MapView {
             window: window,
             highlight: None,
             overlay: Vec::new(),
+            help: None,
         }
     }
 
@@ -49,6 +51,12 @@ impl MapView {
 
         for &(p, c) in self.overlay.iter() {
             self.window.put_at(p, c);
+        }
+
+        // TODO:
+        self.window.print_at(Point::new(2, 23), "                                                         ");
+        if let Some(ref help) = self.help {
+            self.window.print_at(Point::new(2, 23), help);
         }
     }
 
@@ -106,5 +114,13 @@ impl MapView {
             }
         }
         None
+    }
+
+    pub fn set_help<S: Into<String>>(&mut self, s: S) {
+        self.help = Some(s.into());
+    }
+
+    pub fn clear_help(&mut self) {
+        self.help = None;
     }
 }
