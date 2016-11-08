@@ -9,6 +9,30 @@ pub enum Ability {
     Destroy { damage: usize, range: usize },
 }
 
+impl Ability {
+    pub fn reachable_tiles(&self, center: Point) -> Vec<Point> {
+        let mut result = vec![];
+        let Point { x, y } = center;
+        match *self {
+            Ability::Destroy { range, .. } => {
+                let range = range as isize;
+                for dx in -range..range + 1 {
+                    for dy in -range..range + 1 {
+                        if dx == 0 && dy == 0 {
+                            continue;
+                        }
+                        if dx.abs() + dy.abs() <= range {
+                            result.push(Point::new((x as isize + dx) as u16, (y as isize + dy) as u16));
+                        }
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+}
+
 pub struct ProgramTurnState {
     pub moves_made: usize,
     pub ability_used: bool,

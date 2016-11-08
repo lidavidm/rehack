@@ -70,6 +70,12 @@ enum GameState {
     Quit,
 }
 
+struct AIChoice {
+    score: isize,
+    ability: Ability,
+    target: ProgramRef,
+}
+
 struct UiModelView {
     info: InfoView,
     map: MapView,
@@ -239,8 +245,10 @@ impl State {
         use GameState::*;
         if let Some(event) = self.translate_event(event, level, mv) {
             match (self, event) {
-                (State(PlayerTurn, ui), UiEvent::EndTurn) => State(AITurnTransition, ui),
+                (State(PlayerTurn, ui), UiEvent::EndTurn) => State(AITurnTransition, UiState::Unselected),
                 (State(PlayerTurn, ui), event) => Self::next_player_turn(ui, event, level, mv),
+                (State(AITurnTransition, ui), _) => State(AITurnTransition, ui),
+                (State(AITurn, ui), _) => State(AITurn, ui),
                 _ => unimplemented!(),
             }
         }
@@ -253,11 +261,55 @@ impl State {
         use GameState::*;
         match self {
             State(PlayerTurn, ui) => Self::next_player_turn(ui, UiEvent::Tick, level, mv),
-            State(AITurnTransition, ui) => {
+            State(AITurnTransition, _) => {
                 begin_turn(level, mv);
-                State(AITurn, ui)
+                State(AITurn, UiState::Unselected)
             },
-            State(AITurn, _) => State(PlayerTurn, UiState::Unselected),
+            State(AITurn, _) => {
+                for program in level.enemy_programs.iter() {
+                    let position = { program.borrow().position };
+                    let Point { x, y } = position;
+                    let abilities = { program.borrow().abilities.clone() };
+                    let mut choices = vec![];
+
+                    for (_, ability) in abilities {
+                        for reachable in ability.reachable_tiles(position) {
+                            match level.contents_of(reachable) {
+                                level::CellContents::Program(target) => {
+                                    choices.push(AIChoice {
+                                        score: 100,
+                                        ability: ability,
+                                        target: target,
+                                    });
+                                }
+                                _ => {},
+                            }
+                        }
+                    }
+                    
+                    let east = Point::new(x + 1, y);
+                    if level.passable(east) {
+                        program.borrow_mut().move_to(east);
+                        continue;
+                    }
+                    let west = Point::new(x - 1, y);
+                    if level.passable(west) {
+                        program.borrow_mut().move_to(west);
+                        continue;
+                    }
+                    let north = Point::new(x, y - 1);
+                    if level.passable(north) {
+                        program.borrow_mut().move_to(north);
+                        continue;
+                    }
+                    let south = Point::new(x, y + 1);
+                    if level.passable(south) {
+                        program.borrow_mut().move_to(south);
+                        continue;
+                    }
+                }
+                State(PlayerTurn, UiState::Unselected)
+            },
             _ => unimplemented!(),
         }
     }

@@ -89,6 +89,7 @@ impl MapView {
             if let Some(range) = self.highlight_range {
                 let range = range as isize;
 
+                // TODO: change this to use refactored function
                 for dx in -range..range + 1 {
                     for dy in -range..range + 1 {
                         if dx == 0 && dy == 0 {
