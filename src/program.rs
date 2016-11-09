@@ -38,7 +38,14 @@ pub struct ProgramTurnState {
     pub ability_used: bool,
 }
 
+#[derive(Clone,Copy,Debug,Eq,PartialEq)]
+pub enum Team {
+    Player,
+    Enemy,
+}
+
 pub struct Program {
+    pub team: Team,
     pub position: Point,
     tail: Vec<Point>,
     pub name: String,
@@ -60,8 +67,9 @@ impl ProgramTurnState {
 }
 
 impl Program {
-    pub fn new(position: Point, name: &str) -> Program {
+    pub fn new(team: Team, position: Point, name: &str) -> Program {
         Program {
+            team: team,
             position: position,
             tail: vec![],
             name: name.to_owned(),

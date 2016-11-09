@@ -2,7 +2,7 @@ use voodoo::window::{Point};
 
 use map_view::MapView;
 use level::{self, Level};
-use program::{Ability, Program, ProgramRef};
+use program::{Ability, Program, ProgramRef, Team};
 
 enum AIChoice {
     Ability {
@@ -13,7 +13,10 @@ enum AIChoice {
 }
 
 pub fn ai_tick(level: &Level, map: &mut MapView) -> Option<(ProgramRef, usize)> {
-    for program in level.enemy_programs.iter() {
+    for program in level.programs.iter() {
+        if program.borrow().team != Team::Enemy {
+            continue;
+        }
         let position = { program.borrow().position };
         let Point { x, y } = position;
         let abilities = { program.borrow().abilities.clone() };

@@ -2,7 +2,7 @@ use voodoo::color::ColorValue;
 use voodoo::window::{Point, TermCell, Window};
 
 use level::{CellContents, Level};
-use program::{ProgramRef};
+use program::{ProgramRef, Team};
 
 pub struct MapView {
     window: Window,
@@ -39,12 +39,12 @@ impl MapView {
             }
         }
 
-        for program in level.player_programs.iter() {
-            program.borrow().display_color(ColorValue::Green, &mut self.window);
-        }
-
-        for program in level.enemy_programs.iter() {
-            program.borrow().display_color(ColorValue::Red, &mut self.window);
+        for program in level.programs.iter() {
+            let color = match program.borrow().team {
+                Team::Player => ColorValue::Green,
+                Team::Enemy => ColorValue::Red,
+            };
+            program.borrow().display_color(color, &mut self.window);
         }
 
         if let Some(ref program) = self.highlight {
