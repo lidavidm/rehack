@@ -140,6 +140,9 @@ impl UiState {
                     match level.contents_of(p) {
                         level::CellContents::Program(p) => {
                             ability.apply(&mut p.borrow_mut());
+                            if let Some(caster) = map.get_highlight() {
+                                caster.borrow_mut().turn_state.ability_used = true;
+                            }
                             Animating
                         },
                         _ => Selected,

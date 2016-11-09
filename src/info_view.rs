@@ -62,10 +62,15 @@ impl InfoView {
         self.window.print_at(Point::new(2, 2), &program.name);
         self.update_program(program);
 
-        self.window.print_at(Point::new(2, 4), "Abilities:");
-        self.ability_list.extend(program.abilities.iter().cloned());
+        if program.turn_state.ability_used {
+            self.window.print_at(Point::new(2, 4), "Ability used");
+        }
+        else {
+            self.window.print_at(Point::new(2, 4), "Abilities:");
+            self.ability_list.extend(program.abilities.iter().cloned());
 
-        self.display_abilities();
+            self.display_abilities();
+        }
     }
 
     pub fn update_program(&mut self, program: &Program) {
