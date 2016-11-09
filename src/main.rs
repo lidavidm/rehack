@@ -115,6 +115,7 @@ impl UiState {
                 else {
                     map.clear_highlight();
                     info.clear();
+                    info.display_end_turn();
                     Self::select_program(p, level, map, info)
                 }
             }
@@ -182,6 +183,7 @@ impl UiState {
                             }
                             else {
                                 info.clear();
+                                info.display_end_turn();
                                 Unselected
                             }
                         }
@@ -263,6 +265,8 @@ impl State {
                 let modified = update_programs(level, &mut mv.ui_modelview.map);
 
                 if !modified {
+                    begin_turn(level, mv);
+                    mv.ui_modelview.info.display_end_turn();
                     State(PlayerTurn, UiState::Unselected)
                 }
                 else {

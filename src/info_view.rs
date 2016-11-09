@@ -30,14 +30,17 @@ impl InfoView {
         self.window.refresh(stdout);
     }
 
+    pub fn display_end_turn(&mut self) {
+        let mut f: FormattedString = "     End Turn     ".into();
+        f.bg = Some(ColorValue::Magenta);
+        self.window.print_at(Point::new(2, 23), f);
+    }
+
     pub fn clear(&mut self) {
         self.ability_list.clear();
         self.selected_ability = None;
         self.window.clear();
         self.window.border();
-        let mut f: FormattedString = "     End Turn     ".into();
-        f.bg = Some(ColorValue::Magenta);
-        self.window.print_at(Point::new(2, 23), f);
     }
 
     pub fn display_abilities(&mut self) {
