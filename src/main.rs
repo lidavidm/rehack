@@ -78,6 +78,20 @@ struct UiModelView {
 }
 
 impl UiState {
+    fn select_program(point: Point, level: &Level, map: &mut MapView, info: &mut InfoView) -> UiState {
+        use UiState::*;
+
+        for program in level.programs.iter() {
+            if program.borrow().intersects(point) && program.borrow().team == Team::Player {
+                map.highlight(program.clone(), &level);
+                info.display_program(&program.borrow());
+                map.set_help("Click arrows to move; click ability at left to use");
+                return Selected;
+            }
+        }
+        Unselected
+    }
+
     fn next(self, event: UiEvent, level: &mut Level, mv: &mut UiModelView) -> UiState {
         use UiEvent::*;
         use UiState::*;
@@ -86,15 +100,7 @@ impl UiState {
 
         let result = match (self, event) {
             (Unselected, ClickMap(p)) => {
-                for program in level.programs.iter() {
-                    if program.borrow().intersects(p) && program.borrow().team == Team::Player {
-                        map.highlight(program.clone(), &level);
-                        info.display_program(&program.borrow());
-                        map.set_help("Click arrows to move; click ability at left to use");
-                        return Selected;
-                    }
-                }
-                Unselected
+                Self::select_program(p, level, map, info)
             }
             (Selected, ClickMap(p)) => {
                 let result = map.translate_click(p);
@@ -108,7 +114,7 @@ impl UiState {
                 else {
                     map.clear_highlight();
                     info.clear();
-                    Unselected
+                    Self::select_program(p, level, map, info)
                 }
             }
             (Unselected, ClickInfo(_)) => Unselected,
@@ -189,8 +195,6 @@ impl UiState {
         if let Unselected = result {
             map.set_help("Click program to control it");
         }
-
-        map.set_help(format!("{:?}", self));
 
         result
     }
