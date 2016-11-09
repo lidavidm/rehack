@@ -26,10 +26,12 @@ pub fn ai_tick(level: &Level, map: &mut MapView) -> Option<(ProgramRef, usize)> 
             for reachable in ability.reachable_tiles(position) {
                 match level.contents_of(reachable) {
                     level::CellContents::Program(target) => {
-                        choices.push((100, AIChoice::Ability {
-                            ability: ability,
-                            target: target,
-                        }));
+                        if target.borrow().team == Team::Player {
+                            choices.push((100, AIChoice::Ability {
+                                ability: ability,
+                                target: target,
+                            }));
+                        }
                     }
                     _ => {},
                 }
@@ -38,7 +40,7 @@ pub fn ai_tick(level: &Level, map: &mut MapView) -> Option<(ProgramRef, usize)> 
         
         let east = Point::new(x + 1, y);
         if level.passable(east) {
-            // choices.push((50, AIChoice::Move(east)));
+            choices.push((50, AIChoice::Move(east)));
         }
         let west = Point::new(x - 1, y);
         if level.passable(west) {
