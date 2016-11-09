@@ -20,20 +20,23 @@ pub fn ai_tick(level: &Level, map: &mut MapView) {
         let position = { program.borrow().position };
         let Point { x, y } = position;
         let abilities = { program.borrow().abilities.clone() };
+        let ability_used = { program.borrow().turn_state.ability_used };
         let mut choices = vec![];
 
-        for (_, ability) in abilities {
-            for reachable in ability.reachable_tiles(position) {
-                match level.contents_of(reachable) {
-                    level::CellContents::Program(target) => {
-                        if target.borrow().team == Team::Player {
-                            choices.push((100, AIChoice::Ability {
-                                ability: ability,
-                                target: target,
-                            }));
+        if !ability_used {
+            for (_, ability) in abilities {
+                for reachable in ability.reachable_tiles(position) {
+                    match level.contents_of(reachable) {
+                        level::CellContents::Program(target) => {
+                            if target.borrow().team == Team::Player {
+                                choices.push((100, AIChoice::Ability {
+                                    ability: ability,
+                                    target: target,
+                                }));
+                            }
                         }
+                        _ => {},
                     }
-                    _ => {},
                 }
             }
         }
@@ -59,6 +62,7 @@ pub fn ai_tick(level: &Level, map: &mut MapView) {
         if let Some(&(_, ref choice)) = choices.first() {
             match choice {
                 &AIChoice::Ability { ability, ref target } => {
+                    program.borrow_mut().turn_state.ability_used = true;
                     ability.apply(&mut target.borrow_mut());
                 }
                 &AIChoice::Move(point) => {
