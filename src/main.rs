@@ -270,7 +270,7 @@ impl State {
                     State(PlayerTurn, UiState::Unselected)
                 }
                 else {
-                    State(AITurn, UiState::Unselected)
+                    State(AITurn, UiState::Animating)
                 }
             }
             State(AITurn, _) => {
@@ -374,6 +374,7 @@ fn main() {
     let mut info_view = InfoView::new(info);
     let mut map_view = MapView::new(map);
     info_view.clear();
+    info_view.display_end_turn();
     info_view.refresh(stdout);
     map_view.display(&level);
     map_view.refresh(stdout);
