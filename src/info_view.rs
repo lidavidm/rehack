@@ -1,12 +1,13 @@
 use voodoo::color::ColorValue;
 use voodoo::window::{FormattedString, Point, Window};
 
-use program::{Ability, Program};
+use program::{Ability, Program, Team};
 
 pub struct InfoView {
     window: Window,
     ability_list: Vec<(String, Ability)>,
     selected_ability: Option<(usize, Ability)>,
+    team: Team,
 }
 
 impl InfoView {
@@ -19,6 +20,7 @@ impl InfoView {
             window: window,
             ability_list: Vec::new(),
             selected_ability: None,
+            team: Team::Player,
         }
     }
 
@@ -36,11 +38,19 @@ impl InfoView {
         self.window.print_at(Point::new(2, 23), f);
     }
 
+    pub fn set_team(&mut self, team: Team) {
+        self.team = team;
+    }
+
     pub fn clear(&mut self) {
         self.ability_list.clear();
         self.selected_ability = None;
         self.window.clear();
         self.window.border();
+        self.window.print_at(Point::new(2, 1), match self.team {
+            Team::Player => "﻿PLAYER TURN",
+            Team::Enemy => "﻿AI TURN",
+        });
     }
 
     pub fn display_abilities(&mut self) {

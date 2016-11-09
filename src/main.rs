@@ -258,14 +258,14 @@ impl State {
         match self {
             State(PlayerTurn, ui) => Self::next_player_turn(ui, UiEvent::Tick, level, mv),
             State(AITurnTransition, _) => {
-                begin_turn(level, mv);
+                begin_turn(Team::Enemy, level, mv);
                 State(AITurn, UiState::Unselected)
             }
             State(AITurn, UiState::Animating) => {
                 let modified = update_programs(level, &mut mv.ui_modelview.map);
 
                 if !modified {
-                    begin_turn(level, mv);
+                    begin_turn(Team::Player, level, mv);
                     mv.ui_modelview.info.display_end_turn();
                     State(PlayerTurn, UiState::Unselected)
                 }
@@ -299,7 +299,8 @@ impl State {
     }
 }
 
-fn begin_turn(level: &mut Level, mv: &mut GameModelView) {
+fn begin_turn(team: Team, level: &mut Level, mv: &mut GameModelView) {
+    mv.ui_modelview.info.set_team(team);
     mv.ui_modelview.info.clear();
     mv.ui_modelview.map.clear_range();
     mv.ui_modelview.map.clear_highlight();
@@ -372,6 +373,7 @@ fn main() {
 
     let mut info_view = InfoView::new(info);
     let mut map_view = MapView::new(map);
+    info_view.clear();
     info_view.refresh(stdout);
     map_view.display(&level);
     map_view.refresh(stdout);
