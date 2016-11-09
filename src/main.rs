@@ -21,7 +21,7 @@ use voodoo::window::{Point};
 use info_view::InfoView;
 use map_view::MapView;
 use level::Level;
-use program::{Ability, Program, ProgramRef, Team};
+use program::{Ability, Program, ProgramRef, StatusEffect, Team};
 
 const LEVEL_DESCR: [&'static str; 20] = [
     "                                                          ",
@@ -46,17 +46,18 @@ const LEVEL_DESCR: [&'static str; 20] = [
     "                                                          ",
 ];
 
+#[derive(Clone,Copy,Debug)]
 enum UiState {
     Unselected,
     Selected,
-    SelectTarget,
-    Damage(ProgramRef, usize),
+    SelectTarget(Ability),
+    // Damage(ProgramRef, usize),
+    Animating,
 }
 
 enum UiEvent {
     Quit,
     Tick,
-    Test,
     ClickMap(Point),
     ClickInfo(Point),
     EndTurn,
@@ -119,18 +120,21 @@ impl UiState {
                             map.highlight_range(range, level);
                         }
                     }
-                    return SelectTarget;
+                    return SelectTarget(ability);
                 }
                 Selected
             }
-            (SelectTarget, ClickMap(p)) => {
+            (SelectTarget(ability), ClickMap(p)) => {
                 let result = map.translate_click(p);
                 info.clear_ability();
                 map.clear_range();
                 map.update_highlight(level);
                 if let Some(p) = result {
                     match level.contents_of(p) {
-                        level::CellContents::Program(p) => Damage(p, 2),
+                        level::CellContents::Program(p) => {
+                            ability.apply(&mut p.borrow_mut());
+                            Animating
+                        },
                         _ => Selected,
                     }
                 }
@@ -138,7 +142,7 @@ impl UiState {
                     Selected
                 }
             }
-            (SelectTarget, ClickInfo(p)) => {
+            (SelectTarget(_), ClickInfo(p)) => {
                 let result = info.translate_click(p);
                 if let Some(ability) = result {
                     // TODO: refactor this out
@@ -148,7 +152,7 @@ impl UiState {
                             map.highlight_range(range, level);
                         }
                     }
-                    SelectTarget
+                    SelectTarget(ability)
                 }
                 else {
                     info.clear_ability();
@@ -157,48 +161,36 @@ impl UiState {
                     Selected
                 }
             }
-            (Damage(program, damage), Tick) => {
-                if damage == 0 {
-                    if map.get_highlight().is_some() {
-                        Selected
+            (state, Tick) => {
+                let modified = update_programs(level, map);
+
+                match state {
+                    Animating => {
+                        if !modified {
+                            if map.get_highlight().is_some() {
+                                Selected
+                            }
+                            else {
+                                info.clear();
+                                Unselected
+                            }
+                        }
+                        else {
+                            state
+                        }
                     }
-                    else {
-                        info.clear();
-                        Unselected
-                    }
-                }
-                else {
-                    let new_ref = program.clone();
-                    let position = { program.borrow().position };
-                    let lived = { program.borrow_mut().damage() };
-                    if lived {
-                        Damage(new_ref, damage - 1)
-                    }
-                    else {
-                        level.remove_program_at(position);
-                        map.clear_highlight();
-                        Damage(new_ref, 0)
-                    }
+                    _ => state,
                 }
             }
-            (Damage(program, damage), _) => {
-                Damage(program, damage)
-            }
-            (state, Tick) => { state }
-            (Selected, Test) => {
-                if let Some(ref program) = map.get_highlight() {
-                    Damage(program.clone(), 2)
-                }
-                else {
-                    Selected
-                }
-            }
-            (state, Test) | (state, Quit) | (state, EndTurn) => { state },
+            (Animating, _) => Animating,
+            (state, Quit) | (state, EndTurn) => { state },
         };
 
         if let Unselected = result {
             map.set_help("Click program to control it");
         }
+
+        map.set_help(format!("{:?}", self));
 
         result
     }
@@ -215,7 +207,6 @@ impl State {
         use GameState::*;
         match (self, event) {
             (_, Event::Key(Key::Char('q'))) => Some(UiEvent::Quit),
-            (&State(PlayerTurn, _), Event::Key(Key::Char(' '))) => Some(UiEvent::Test),
             (&State(PlayerTurn, _), Event::Mouse(MouseEvent::Press(_, x, y))) => {
                 if let Some(p) = mv.ui_modelview.map.from_global_frame(Point::new(x, y)) {
                     Some(UiEvent::ClickMap(p))
@@ -260,31 +251,19 @@ impl State {
                 begin_turn(level, mv);
                 State(AITurn, UiState::Unselected)
             }
-            State(AITurn, UiState::Damage(program, damage)) => {
-                let ui_state = if damage == 0 {
-                    UiState::Unselected
-                }
-                else {
-                    let new_ref = program.clone();
-                    let position = { program.borrow().position };
-                    let lived = { program.borrow_mut().damage() };
-                    if lived {
-                        UiState::Damage(new_ref, damage - 1)
-                    }
-                    else {
-                        level.remove_program_at(position);
-                        UiState::Damage(new_ref, 0)
-                    }
-                };
-                State(AITurn, ui_state)
-            }
-            State(AITurn, _) => {
-                if let Some((target, damage)) = ai::ai_tick(level, &mut mv.ui_modelview.map) {
-                    State(AITurn, UiState::Damage(target, damage))
-                }
-                else {
+            State(AITurn, UiState::Animating) => {
+                let modified = update_programs(level, &mut mv.ui_modelview.map);
+
+                if !modified {
                     State(PlayerTurn, UiState::Unselected)
                 }
+                else {
+                    State(AITurn, UiState::Unselected)
+                }
+            }
+            State(AITurn, _) => {
+                ai::ai_tick(level, &mut mv.ui_modelview.map);
+                State(AITurn, UiState::Animating)
             },
             _ => unimplemented!(),
         }
@@ -300,7 +279,7 @@ impl State {
             click@UiEvent::ClickInfo(_) => {
                 State(PlayerTurn, ui_state.next(click, level, &mut mv.ui_modelview))
             }
-            UiEvent::Tick | UiEvent::Test => {
+            UiEvent::Tick => {
                 State(PlayerTurn, ui_state.next(event, level, &mut mv.ui_modelview))
             }
             UiEvent::EndTurn => unreachable!(),
@@ -314,6 +293,45 @@ fn begin_turn(level: &mut Level, mv: &mut GameModelView) {
     mv.ui_modelview.map.clear_highlight();
     mv.ui_modelview.map.update_highlight(level);
     level.begin_turn();
+}
+
+fn update_programs(level: &mut Level, map: &mut MapView) -> bool {
+    let mut modified = false;
+    let mut killed = vec![];
+    for program in level.programs.iter_mut() {
+        let mut p = program.borrow_mut();
+        let position = p.position;
+        let mut damaged = false;
+        for effect in p.status_effects.iter_mut() {
+            match *effect {
+                StatusEffect::Damage(damage) => {
+                    modified = true;
+                    damaged = true;
+                    *effect = StatusEffect::Damage(damage - 1);
+                }
+            }
+        }
+        p.status_effects.retain(|effect| {
+            match *effect {
+                StatusEffect::Damage(0) => false,
+                StatusEffect::Damage(_) => true,
+            }
+        });
+
+        if damaged {
+            let lived = p.damage();
+            if !lived {
+                killed.push(position);
+                map.clear_highlight();
+            }
+        }
+    }
+
+    for position in killed {
+        level.remove_program_at(position);
+    }
+
+    modified
 }
 
 fn main() {

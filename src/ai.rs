@@ -12,7 +12,7 @@ enum AIChoice {
     Move(Point),
 }
 
-pub fn ai_tick(level: &Level, map: &mut MapView) -> Option<(ProgramRef, usize)> {
+pub fn ai_tick(level: &Level, map: &mut MapView) {
     for program in level.programs.iter() {
         if program.borrow().team != Team::Enemy {
             continue;
@@ -59,8 +59,7 @@ pub fn ai_tick(level: &Level, map: &mut MapView) -> Option<(ProgramRef, usize)> 
         if let Some(&(_, ref choice)) = choices.first() {
             match choice {
                 &AIChoice::Ability { ability, ref target } => {
-                    // TODO: actually apply the ability
-                    return Some((target.clone(), 2));
+                    ability.apply(&mut target.borrow_mut());
                 }
                 &AIChoice::Move(point) => {
                     program.borrow_mut().move_to(point);
@@ -68,6 +67,4 @@ pub fn ai_tick(level: &Level, map: &mut MapView) -> Option<(ProgramRef, usize)> 
             }
         }
     }
-
-    None
 }

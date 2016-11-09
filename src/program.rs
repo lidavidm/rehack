@@ -9,6 +9,11 @@ pub enum Ability {
     Destroy { damage: usize, range: usize },
 }
 
+#[derive(Clone,Copy,Debug)]
+pub enum StatusEffect {
+    Damage(usize),
+}
+
 impl Ability {
     pub fn reachable_tiles(&self, center: Point) -> Vec<Point> {
         let mut result = vec![];
@@ -30,6 +35,23 @@ impl Ability {
         }
 
         return result;
+    }
+
+    pub fn apply(&self, program: &mut Program) {
+        match *self {
+            Ability::Destroy { damage, .. } => {
+                let mut applied = false;
+                for effect in program.status_effects.iter_mut() {
+                    applied = true;
+                    let StatusEffect::Damage(x) = *effect;
+                    *effect = StatusEffect::Damage(x + damage);
+                }
+
+                if !applied {
+                    program.status_effects.push(StatusEffect::Damage(damage));
+                }
+            }
+        }
     }
 }
 
@@ -53,6 +75,7 @@ pub struct Program {
     pub max_tail: usize,
     pub max_moves: usize,
     pub turn_state: ProgramTurnState,
+    pub status_effects: Vec<StatusEffect>,
 }
 
 pub type ProgramRef = Rc<RefCell<Program>>;
@@ -77,6 +100,7 @@ impl Program {
             max_tail: 4,
             max_moves: 3,
             turn_state: ProgramTurnState::new(),
+            status_effects: vec![],
         }
     }
 
