@@ -60,12 +60,18 @@ impl InfoView {
     // TODO: take a ProgramRef and store it (maybe a weak reference)
     pub fn display_program(&mut self, program: &Program) {
         self.window.print_at(Point::new(2, 2), &program.name);
-        self.window.print_at(Point::new(2, 3), "Moves: 3/3");
+        self.update_program(program);
 
         self.window.print_at(Point::new(2, 4), "Abilities:");
         self.ability_list.extend(program.abilities.iter().cloned());
 
         self.display_abilities();
+    }
+
+    pub fn update_program(&mut self, program: &Program) {
+        self.window.print_at(
+            Point::new(2, 3),
+            &format!("Moves: {}/{}", program.max_moves - program.turn_state.moves_made, program.max_moves));
     }
 
     // TODO: return the ability range or something? Ability descriptor

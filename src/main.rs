@@ -107,6 +107,7 @@ impl UiState {
                 if let Some(p) = result {
                     if let Some(ref mut program) = map.get_highlight() {
                         program.borrow_mut().move_to(p);
+                        info.update_program(&program.borrow());
                     }
                     map.update_highlight(&level);
                     Selected
