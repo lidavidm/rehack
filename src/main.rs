@@ -7,6 +7,7 @@ mod ai;
 mod info_view;
 mod map_view;
 mod level;
+mod player;
 mod program;
 
 use std::io::{Write};
@@ -21,7 +22,8 @@ use voodoo::window::{Point};
 use info_view::InfoView;
 use map_view::MapView;
 use level::Level;
-use program::{Ability, Program, ProgramRef, StatusEffect, Team};
+use player::Player;
+use program::{Ability, Program, StatusEffect, Team};
 
 const LEVEL_DESCR: [&'static str; 20] = [
     "                                                          ",
@@ -75,6 +77,7 @@ enum GameState {
 struct ModelView {
     info: InfoView,
     map: MapView,
+    player: Player,
 }
 
 impl UiState {
@@ -96,7 +99,7 @@ impl UiState {
         use UiEvent::*;
         use UiState::*;
 
-        let ModelView { ref mut info, ref mut map } = *mv;
+        let ModelView { ref mut info, ref mut map, ref mut player } = *mv;
 
         let result = match (self, event) {
             (Unselected, ClickMap(p)) => {
@@ -385,9 +388,12 @@ fn main() {
     map_view.display(&level);
     map_view.refresh(stdout);
 
+    let player = Player::new("David");
+
     let mut mv = ModelView {
         info: info_view,
         map: map_view,
+        player: player,
     };
     let ui_state = UiState::Unselected;
 
