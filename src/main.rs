@@ -51,7 +51,6 @@ enum UiState {
     Unselected,
     Selected,
     SelectTarget(Ability),
-    // Damage(ProgramRef, usize),
     Animating,
 }
 
@@ -135,6 +134,7 @@ impl UiState {
             (SelectTarget(ability), ClickMap(p)) => {
                 let result = map.translate_click(p);
                 info.clear_ability();
+
                 map.clear_range();
                 map.update_highlight(level);
                 if let Some(p) = result {
@@ -143,6 +143,8 @@ impl UiState {
                             ability.apply(&mut p.borrow_mut());
                             if let Some(caster) = map.get_highlight() {
                                 caster.borrow_mut().turn_state.ability_used = true;
+                                info.clear();
+                                info.display_program(&caster.borrow());
                             }
                             Animating
                         },

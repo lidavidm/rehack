@@ -78,6 +78,7 @@ impl InfoView {
         self.window.print_at(Point::new(2, 2), &program.name);
         self.update_program(program);
 
+        self.ability_list.clear();
         if program.turn_state.ability_used {
             self.window.print_at(Point::new(2, 4), "Ability used");
         }
