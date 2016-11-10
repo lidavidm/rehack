@@ -141,7 +141,7 @@ pub fn next_setup(state: UiState, event: UiEvent, level: &mut Level, mv: &mut Mo
 
     let new_state = match (state, event) {
         (state, Quit) => state,
-        (state, Tick) => return state,
+        (state, Tick) => state,
 
         (Unselected, ClickMap(p)) => Selected,
         (Unselected, ClickInfo(p)) => Unselected,

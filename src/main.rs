@@ -184,6 +184,7 @@ impl State {
             }
             UiEvent::EndTurn => {
                 // TODO: reset
+                mv.info.primary_action = ">    End Turn    <".to_owned();
                 State(PlayerTurnTransition, UiState::Unselected)
             }
             UiEvent::Quit => unreachable!(),
@@ -250,8 +251,6 @@ fn main() {
     use voodoo::terminal::{Mode, Terminal};
 
     let mut level = Level::new(&LEVEL_DESCR);
-    level.add_program(Program::new(Team::Player, Point::new(11, 9), "Hack"));
-    level.add_program(Program::new(Team::Player, Point::new(5, 10), "Hack"));
     level.add_program(Program::new(Team::Enemy, Point::new(7, 10), "Hack"));
     level.add_program(Program::new(Team::Enemy, Point::new(9, 10), "Hack"));
 
@@ -269,6 +268,8 @@ fn main() {
 
     let mut info_view = InfoView::new(info);
     let mut map_view = MapView::new(map);
+    info_view.primary_action = ">Launch Intrusion<".to_owned();
+    info_view.clear();
     info_view.refresh(stdout);
     map_view.display(&level);
     map_view.refresh(stdout);

@@ -8,20 +8,20 @@ pub struct InfoView {
     ability_list: Vec<(String, Ability)>,
     selected_ability: Option<(usize, Ability)>,
     team: Team,
+    pub primary_action: String,
 }
 
 impl InfoView {
-    pub fn new(mut window: Window) -> InfoView {
-        let mut f: FormattedString = "     End Turn     ".into();
-        f.bg = Some(ColorValue::Magenta);
-        window.print_at(Point::new(2, 23), f);
-
-        InfoView {
+    pub fn new(window: Window) -> InfoView {
+        let info = InfoView {
             window: window,
             ability_list: Vec::new(),
             selected_ability: None,
             team: Team::Player,
-        }
+            primary_action: "     End Turn     ".to_owned(),
+        };
+
+        info
     }
 
     pub fn from_global_frame(&self, p: Point) -> Option<Point> {
@@ -33,7 +33,7 @@ impl InfoView {
     }
 
     pub fn display_end_turn(&mut self) {
-        let mut f: FormattedString = "     End Turn     ".into();
+        let mut f: FormattedString = (&self.primary_action).into();
         f.bg = Some(ColorValue::Magenta);
         self.window.print_at(Point::new(2, 23), f);
     }
