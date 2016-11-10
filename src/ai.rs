@@ -12,7 +12,15 @@ enum AIChoice {
     Move(Point),
 }
 
-pub fn ai_tick(level: &Level, map: &mut MapView) {
+#[derive(Clone,Copy,Debug)]
+pub enum AIState {
+    WaitingAnimation,
+    Plotting,
+    Done,
+}
+
+pub fn ai_tick(level: &Level, map: &mut MapView) -> AIState {
+    let mut result = AIState::Done;
     for program in level.programs.iter() {
         if program.borrow().team != Team::Enemy {
             continue;
@@ -64,11 +72,18 @@ pub fn ai_tick(level: &Level, map: &mut MapView) {
                 &AIChoice::Ability { ability, ref target } => {
                     program.borrow_mut().turn_state.ability_used = true;
                     ability.apply(&mut target.borrow_mut());
+                    result = AIState::WaitingAnimation;
                 }
                 &AIChoice::Move(point) => {
-                    program.borrow_mut().move_to(point);
+                    if program.borrow().can_move() {
+                        program.borrow_mut().move_to(point);
+                        if let AIState::Done = result {
+                            result = AIState::Plotting;
+                        }
+                    }
                 }
             }
         }
     }
+    result
 }

@@ -66,8 +66,9 @@ enum UiEvent {
 enum GameState {
     // Setup,
     PlayerTurn,
-    AITurnTransition,
     AITurn,
+    AITurnTransition,
+    PlayerTurnTransition,
     // AIExecute,
     Quit,
 }
@@ -115,7 +116,6 @@ impl UiState {
                 else {
                     map.clear_highlight();
                     info.clear();
-                    info.display_end_turn();
                     Self::select_program(p, level, map, info)
                 }
             }
@@ -183,7 +183,6 @@ impl UiState {
                             }
                             else {
                                 info.clear();
-                                info.display_end_turn();
                                 Unselected
                             }
                         }
@@ -261,21 +260,29 @@ impl State {
                 begin_turn(Team::Enemy, level, mv);
                 State(AITurn, UiState::Unselected)
             }
+            State(PlayerTurnTransition, _) => {
+                begin_turn(Team::Player, level, mv);
+                State(PlayerTurn, UiState::Unselected)
+            }
             State(AITurn, UiState::Animating) => {
                 let modified = update_programs(level, &mut mv.ui_modelview.map);
 
                 if !modified {
                     begin_turn(Team::Player, level, mv);
-                    mv.ui_modelview.info.display_end_turn();
-                    State(PlayerTurn, UiState::Unselected)
+                    State(AITurn, UiState::Unselected)
                 }
                 else {
                     State(AITurn, UiState::Animating)
                 }
             }
             State(AITurn, _) => {
-                ai::ai_tick(level, &mut mv.ui_modelview.map);
-                State(AITurn, UiState::Animating)
+                let ai_state = ai::ai_tick(level, &mut mv.ui_modelview.map);
+                mv.ui_modelview.map.set_help(format!("AI STATUS: {:?}", ai_state));
+                match ai_state {
+                    ai::AIState::Done => State(PlayerTurnTransition, UiState::Unselected),
+                    ai::AIState::Plotting => State(AITurn, UiState::Unselected),
+                    ai::AIState::WaitingAnimation => State(AITurn, UiState::Animating),
+                }
             },
             _ => unimplemented!(),
         }
@@ -358,6 +365,7 @@ fn main() {
     level.add_program(Program::new(Team::Player, Point::new(11, 9), "Hack"));
     level.add_program(Program::new(Team::Player, Point::new(5, 10), "Hack"));
     level.add_program(Program::new(Team::Enemy, Point::new(7, 10), "Hack"));
+    level.add_program(Program::new(Team::Enemy, Point::new(9, 10), "Hack"));
 
     let mut terminal = Terminal::new();
     terminal.cursor(Mode::Disabled);
@@ -373,8 +381,6 @@ fn main() {
 
     let mut info_view = InfoView::new(info);
     let mut map_view = MapView::new(map);
-    info_view.clear();
-    info_view.display_end_turn();
     info_view.refresh(stdout);
     map_view.display(&level);
     map_view.refresh(stdout);
@@ -385,7 +391,7 @@ fn main() {
     };
     let ui_state = UiState::Unselected;
 
-    let mut state = State(GameState::PlayerTurn, ui_state);
+    let mut state = State(GameState::PlayerTurnTransition, ui_state);
     let mut mv = GameModelView {
         ui_modelview: ui_modelview,
     };

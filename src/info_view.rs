@@ -51,6 +51,9 @@ impl InfoView {
             Team::Player => "﻿PLAYER TURN",
             Team::Enemy => "﻿AI TURN",
         });
+        if let Team::Player = self.team {
+            self.display_end_turn();
+        }
     }
 
     pub fn display_abilities(&mut self) {
