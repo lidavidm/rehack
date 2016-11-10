@@ -134,3 +134,28 @@ pub fn next(state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelVie
 
     result
 }
+
+pub fn next_setup(state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelView) -> UiState {
+    use UiState::*;
+    use UiEvent::*;
+
+    let new_state = match (state, event) {
+        (state, Quit) => state,
+        (state, Tick) => return state,
+
+        (Unselected, ClickMap(p)) => Selected,
+        (Unselected, ClickInfo(p)) => Unselected,
+        (Selected, ClickMap(p)) => Unselected,
+        (Selected, ClickInfo(p)) => Unselected,
+
+        (SelectTarget(_), _) | (Animating, _) | (_, EndTurn) => unreachable!(),
+    };
+
+    match new_state {
+        Unselected => mv.map.set_help("Choose uplink O to load program"),
+        Selected => mv.map.set_help("Choose program to load at left"),
+        _ => unreachable!(),
+    };
+
+    new_state
+}

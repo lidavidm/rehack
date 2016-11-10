@@ -57,6 +57,7 @@ pub enum UiState {
     Animating,
 }
 
+#[derive(Clone,Copy,Debug)]
 pub enum UiEvent {
     Quit,
     Tick,
@@ -65,8 +66,9 @@ pub enum UiEvent {
     EndTurn,
 }
 
+#[derive(Clone,Copy,Debug)]
 enum GameState {
-    // Setup,
+    Setup,
     PlayerTurn,
     AITurn,
     AITurnTransition,
@@ -81,6 +83,7 @@ pub struct ModelView {
     player: Player,
 }
 
+#[derive(Clone,Copy,Debug)]
 struct State(GameState, UiState);
 
 impl State {
@@ -88,7 +91,8 @@ impl State {
         use GameState::*;
         match (self, event) {
             (_, Event::Key(Key::Char('q'))) => Some(UiEvent::Quit),
-            (&State(PlayerTurn, _), Event::Mouse(MouseEvent::Press(_, x, y))) => {
+            (&State(PlayerTurn, _), Event::Mouse(MouseEvent::Press(_, x, y))) |
+            (&State(Setup, _), Event::Mouse(MouseEvent::Press(_, x, y))) => {
                 if let Some(p) = mv.map.from_global_frame(Point::new(x, y)) {
                     Some(UiEvent::ClickMap(p))
                 }
@@ -112,11 +116,13 @@ impl State {
         use GameState::*;
         if let Some(event) = self.translate_event(event, level, mv) {
             match (self, event) {
+                (State(Quit, ui), _) => State(Quit, ui),
+                (State(Setup, ui), event) => Self::next_setup_turn(ui, event, level, mv),
+                (State(PlayerTurnTransition, _), _) => self,
                 (State(PlayerTurn, _), UiEvent::EndTurn) => State(AITurnTransition, UiState::Unselected),
                 (State(PlayerTurn, ui), event) => Self::next_player_turn(ui, event, level, mv),
                 (State(AITurnTransition, ui), _) => State(AITurnTransition, ui),
                 (State(AITurn, ui), _) => State(AITurn, ui),
-                _ => unimplemented!(),
             }
         }
         else {
@@ -127,6 +133,7 @@ impl State {
     fn tick(self, level: &mut Level, mv: &mut ModelView) -> State {
         use GameState::*;
         match self {
+            State(Setup, ui) => Self::next_setup_turn(ui, UiEvent::Tick, level, mv),
             State(PlayerTurn, ui) => Self::next_player_turn(ui, UiEvent::Tick, level, mv),
             State(AITurnTransition, _) => {
                 begin_turn(Team::Enemy, level, mv);
@@ -162,11 +169,24 @@ impl State {
     fn next_player_turn(ui_state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelView) -> State {
         use GameState::*;
         match event {
-            UiEvent::Quit => State(Quit, ui_state),
             UiEvent::ClickMap(_) | UiEvent::ClickInfo(_) | UiEvent::Tick => {
                 State(PlayerTurn, player_turn::next(ui_state, event, level, mv))
             }
-            UiEvent::EndTurn => unreachable!(),
+            UiEvent::EndTurn | UiEvent::Quit => unreachable!(),
+        }
+    }
+
+    fn next_setup_turn(ui_state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelView) -> State {
+        use GameState::*;
+        match event {
+            UiEvent::ClickMap(_) | UiEvent::ClickInfo(_) | UiEvent::Tick => {
+                State(Setup, player_turn::next_setup(ui_state, event, level, mv))
+            }
+            UiEvent::EndTurn => {
+                // TODO: reset
+                State(PlayerTurnTransition, UiState::Unselected)
+            }
+            UiEvent::Quit => unreachable!(),
         }
     }
 }
@@ -262,7 +282,7 @@ fn main() {
     };
     let ui_state = UiState::Unselected;
 
-    let mut state = State(GameState::PlayerTurnTransition, ui_state);
+    let mut state = State(GameState::Setup, ui_state);
 
     let (tx, rx) = channel();
     let guard = unsafe {
