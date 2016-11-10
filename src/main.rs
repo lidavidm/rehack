@@ -8,6 +8,7 @@ mod info_view;
 mod map_view;
 mod level;
 mod player;
+mod player_turn;
 mod program;
 
 use std::io::{Write};
@@ -49,14 +50,14 @@ const LEVEL_DESCR: [&'static str; 20] = [
 ];
 
 #[derive(Clone,Copy,Debug)]
-enum UiState {
+pub enum UiState {
     Unselected,
     Selected,
     SelectTarget(Ability),
     Animating,
 }
 
-enum UiEvent {
+pub enum UiEvent {
     Quit,
     Tick,
     ClickMap(Point),
@@ -74,140 +75,10 @@ enum GameState {
     Quit,
 }
 
-struct ModelView {
+pub struct ModelView {
     info: InfoView,
     map: MapView,
     player: Player,
-}
-
-impl UiState {
-    fn select_program(point: Point, level: &Level, map: &mut MapView, info: &mut InfoView) -> UiState {
-        use UiState::*;
-
-        for program in level.programs.iter() {
-            if program.borrow().intersects(point) && program.borrow().team == Team::Player {
-                map.highlight(program.clone(), &level);
-                info.display_program(&program.borrow());
-                map.set_help("Click arrows to move; click ability at left to use");
-                return Selected;
-            }
-        }
-        Unselected
-    }
-
-    fn next(self, event: UiEvent, level: &mut Level, mv: &mut ModelView) -> UiState {
-        use UiEvent::*;
-        use UiState::*;
-
-        let ModelView { ref mut info, ref mut map, ref mut player } = *mv;
-
-        let result = match (self, event) {
-            (Unselected, ClickMap(p)) => {
-                Self::select_program(p, level, map, info)
-            }
-            (Selected, ClickMap(p)) => {
-                let result = map.translate_click(p);
-                if let Some(p) = result {
-                    if let Some(ref mut program) = map.get_highlight() {
-                        program.borrow_mut().move_to(p);
-                        info.update_program(&program.borrow());
-                    }
-                    map.update_highlight(&level);
-                    Selected
-                }
-                else {
-                    map.clear_highlight();
-                    info.clear();
-                    Self::select_program(p, level, map, info)
-                }
-            }
-            (Unselected, ClickInfo(_)) => Unselected,
-            (Selected, ClickInfo(p)) => {
-                if let Some(ability) = info.translate_click(p) {
-                    match ability {
-                        Ability::Destroy { damage, range } => {
-                            map.set_help(format!("Select target. Damage: 0x{:x} Range: 0x{:x}", damage, range));
-                            map.highlight_range(range, level);
-                        }
-                    }
-                    return SelectTarget(ability);
-                }
-                Selected
-            }
-            (SelectTarget(ability), ClickMap(p)) => {
-                let result = map.translate_click(p);
-                info.clear_ability();
-
-                map.clear_range();
-                map.update_highlight(level);
-                if let Some(p) = result {
-                    match level.contents_of(p) {
-                        level::CellContents::Program(p) => {
-                            ability.apply(&mut p.borrow_mut());
-                            if let Some(caster) = map.get_highlight() {
-                                caster.borrow_mut().turn_state.ability_used = true;
-                                info.clear();
-                                info.display_program(&caster.borrow());
-                            }
-                            Animating
-                        },
-                        _ => Selected,
-                    }
-                }
-                else {
-                    Selected
-                }
-            }
-            (SelectTarget(_), ClickInfo(p)) => {
-                let result = info.translate_click(p);
-                if let Some(ability) = result {
-                    // TODO: refactor this out
-                    match ability {
-                        Ability::Destroy { damage, range } => {
-                            map.set_help(format!("Select target. Damage: 0x{:x} Range: 0x{:x}", damage, range));
-                            map.highlight_range(range, level);
-                        }
-                    }
-                    SelectTarget(ability)
-                }
-                else {
-                    info.clear_ability();
-                    map.clear_range();
-                    map.update_highlight(level);
-                    Selected
-                }
-            }
-            (state, Tick) => {
-                let modified = update_programs(level, map);
-
-                match state {
-                    Animating => {
-                        if !modified {
-                            if map.get_highlight().is_some() {
-                                Selected
-                            }
-                            else {
-                                info.clear();
-                                Unselected
-                            }
-                        }
-                        else {
-                            state
-                        }
-                    }
-                    _ => state,
-                }
-            }
-            (Animating, _) => Animating,
-            (state, Quit) | (state, EndTurn) => { state },
-        };
-
-        if let Unselected = result {
-            map.set_help("Click program to control it");
-        }
-
-        result
-    }
 }
 
 struct State(GameState, UiState);
@@ -292,14 +163,8 @@ impl State {
         use GameState::*;
         match event {
             UiEvent::Quit => State(Quit, ui_state),
-            click@UiEvent::ClickMap(_) => {
-                State(PlayerTurn, ui_state.next(click, level, mv))
-            }
-            click@UiEvent::ClickInfo(_) => {
-                State(PlayerTurn, ui_state.next(click, level, mv))
-            }
-            UiEvent::Tick => {
-                State(PlayerTurn, ui_state.next(event, level, mv))
+            UiEvent::ClickMap(_) | UiEvent::ClickInfo(_) | UiEvent::Tick => {
+                State(PlayerTurn, player_turn::next(ui_state, event, level, mv))
             }
             UiEvent::EndTurn => unreachable!(),
         }
@@ -315,7 +180,7 @@ fn begin_turn(team: Team, level: &mut Level, mv: &mut ModelView) {
     level.begin_turn();
 }
 
-fn update_programs(level: &mut Level, map: &mut MapView) -> bool {
+pub fn update_programs(level: &mut Level, map: &mut MapView) -> bool {
     let mut modified = false;
     let mut killed = vec![];
     for program in level.programs.iter_mut() {
