@@ -268,7 +268,6 @@ impl State {
                 let modified = update_programs(level, &mut mv.ui_modelview.map);
 
                 if !modified {
-                    begin_turn(Team::Player, level, mv);
                     State(AITurn, UiState::Unselected)
                 }
                 else {
@@ -354,6 +353,9 @@ fn update_programs(level: &mut Level, map: &mut MapView) -> bool {
     modified
 }
 
+const MS: u64 = 1_000_000;
+const TICK_TIME: u64 = 250;
+
 fn main() {
     use std::sync::mpsc::TryRecvError::*;
     use std::thread;
@@ -432,9 +434,9 @@ fn main() {
         dt += now - t;
 
         // TODO: use constant
-        while dt >= 100000000 {
+        while dt >= TICK_TIME * MS {
             state = state.tick(&mut level, &mut mv);
-            dt -= 100000000;
+            dt -= TICK_TIME * MS;
         }
 
         mv.ui_modelview.info.refresh(stdout);
@@ -442,7 +444,7 @@ fn main() {
         mv.ui_modelview.map.refresh(stdout);
         t = now;
 
-        thread::sleep(Duration::from_millis(100 - dt / 1000000));
+        thread::sleep(Duration::from_millis((TICK_TIME - dt / MS) / 2));
     }
     guard.join();
 }
