@@ -72,7 +72,7 @@ enum GameState {
     Quit,
 }
 
-struct UiModelView {
+struct ModelView {
     info: InfoView,
     map: MapView,
 }
@@ -92,11 +92,11 @@ impl UiState {
         Unselected
     }
 
-    fn next(self, event: UiEvent, level: &mut Level, mv: &mut UiModelView) -> UiState {
+    fn next(self, event: UiEvent, level: &mut Level, mv: &mut ModelView) -> UiState {
         use UiEvent::*;
         use UiState::*;
 
-        let UiModelView { ref mut info, ref mut map } = *mv;
+        let ModelView { ref mut info, ref mut map } = *mv;
 
         let result = match (self, event) {
             (Unselected, ClickMap(p)) => {
@@ -207,22 +207,18 @@ impl UiState {
     }
 }
 
-struct GameModelView {
-    ui_modelview: UiModelView,
-}
-
 struct State(GameState, UiState);
 
 impl State {
-    fn translate_event(&self, event: termion::event::Event, level: &mut Level, mv: &mut GameModelView) -> Option<UiEvent> {
+    fn translate_event(&self, event: termion::event::Event, _level: &mut Level, mv: &mut ModelView) -> Option<UiEvent> {
         use GameState::*;
         match (self, event) {
             (_, Event::Key(Key::Char('q'))) => Some(UiEvent::Quit),
             (&State(PlayerTurn, _), Event::Mouse(MouseEvent::Press(_, x, y))) => {
-                if let Some(p) = mv.ui_modelview.map.from_global_frame(Point::new(x, y)) {
+                if let Some(p) = mv.map.from_global_frame(Point::new(x, y)) {
                     Some(UiEvent::ClickMap(p))
                 }
-                else if let Some(p) = mv.ui_modelview.info.from_global_frame(Point::new(x, y)) {
+                else if let Some(p) = mv.info.from_global_frame(Point::new(x, y)) {
                     if p.y == 23 {
                         Some(UiEvent::EndTurn)
                     }
@@ -238,11 +234,11 @@ impl State {
         }
     }
 
-    fn next(self, event: termion::event::Event, level: &mut Level, mv: &mut GameModelView) -> State {
+    fn next(self, event: termion::event::Event, level: &mut Level, mv: &mut ModelView) -> State {
         use GameState::*;
         if let Some(event) = self.translate_event(event, level, mv) {
             match (self, event) {
-                (State(PlayerTurn, ui), UiEvent::EndTurn) => State(AITurnTransition, UiState::Unselected),
+                (State(PlayerTurn, _), UiEvent::EndTurn) => State(AITurnTransition, UiState::Unselected),
                 (State(PlayerTurn, ui), event) => Self::next_player_turn(ui, event, level, mv),
                 (State(AITurnTransition, ui), _) => State(AITurnTransition, ui),
                 (State(AITurn, ui), _) => State(AITurn, ui),
@@ -254,7 +250,7 @@ impl State {
         }
     }
 
-    fn tick(self, level: &mut Level, mv: &mut GameModelView) -> State {
+    fn tick(self, level: &mut Level, mv: &mut ModelView) -> State {
         use GameState::*;
         match self {
             State(PlayerTurn, ui) => Self::next_player_turn(ui, UiEvent::Tick, level, mv),
@@ -267,7 +263,7 @@ impl State {
                 State(PlayerTurn, UiState::Unselected)
             }
             State(AITurn, UiState::Animating) => {
-                let modified = update_programs(level, &mut mv.ui_modelview.map);
+                let modified = update_programs(level, &mut mv.map);
 
                 if !modified {
                     State(AITurn, UiState::Unselected)
@@ -277,8 +273,8 @@ impl State {
                 }
             }
             State(AITurn, _) => {
-                let ai_state = ai::ai_tick(level, &mut mv.ui_modelview.map);
-                mv.ui_modelview.map.set_help(format!("AI STATUS: {:?}", ai_state));
+                let ai_state = ai::ai_tick(level, &mut mv.map);
+                mv.map.set_help(format!("AI STATUS: {:?}", ai_state));
                 match ai_state {
                     ai::AIState::Done => State(PlayerTurnTransition, UiState::Unselected),
                     ai::AIState::Plotting => State(AITurn, UiState::Unselected),
@@ -289,30 +285,30 @@ impl State {
         }
     }
 
-    fn next_player_turn(ui_state: UiState, event: UiEvent, level: &mut Level, mv: &mut GameModelView) -> State {
+    fn next_player_turn(ui_state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelView) -> State {
         use GameState::*;
         match event {
             UiEvent::Quit => State(Quit, ui_state),
             click@UiEvent::ClickMap(_) => {
-                State(PlayerTurn, ui_state.next(click, level, &mut mv.ui_modelview))
+                State(PlayerTurn, ui_state.next(click, level, mv))
             }
             click@UiEvent::ClickInfo(_) => {
-                State(PlayerTurn, ui_state.next(click, level, &mut mv.ui_modelview))
+                State(PlayerTurn, ui_state.next(click, level, mv))
             }
             UiEvent::Tick => {
-                State(PlayerTurn, ui_state.next(event, level, &mut mv.ui_modelview))
+                State(PlayerTurn, ui_state.next(event, level, mv))
             }
             UiEvent::EndTurn => unreachable!(),
         }
     }
 }
 
-fn begin_turn(team: Team, level: &mut Level, mv: &mut GameModelView) {
-    mv.ui_modelview.info.set_team(team);
-    mv.ui_modelview.info.clear();
-    mv.ui_modelview.map.clear_range();
-    mv.ui_modelview.map.clear_highlight();
-    mv.ui_modelview.map.update_highlight(level);
+fn begin_turn(team: Team, level: &mut Level, mv: &mut ModelView) {
+    mv.info.set_team(team);
+    mv.info.clear();
+    mv.map.clear_range();
+    mv.map.clear_highlight();
+    mv.map.update_highlight(level);
     level.begin_turn();
 }
 
@@ -389,16 +385,13 @@ fn main() {
     map_view.display(&level);
     map_view.refresh(stdout);
 
-    let ui_modelview = UiModelView {
+    let mut mv = ModelView {
         info: info_view,
         map: map_view,
     };
     let ui_state = UiState::Unselected;
 
     let mut state = State(GameState::PlayerTurnTransition, ui_state);
-    let mut mv = GameModelView {
-        ui_modelview: ui_modelview,
-    };
 
     let (tx, rx) = channel();
     let guard = unsafe {
@@ -441,9 +434,9 @@ fn main() {
             dt -= TICK_TIME * MS;
         }
 
-        mv.ui_modelview.info.refresh(stdout);
-        mv.ui_modelview.map.display(&level);
-        mv.ui_modelview.map.refresh(stdout);
+        mv.info.refresh(stdout);
+        mv.map.display(&level);
+        mv.map.refresh(stdout);
         t = now;
 
         thread::sleep(Duration::from_millis((TICK_TIME - dt / MS) / 2));

@@ -2,7 +2,7 @@ use voodoo::window::{Point};
 
 use map_view::MapView;
 use level::{self, Level};
-use program::{Ability, Program, ProgramRef, Team};
+use program::{Ability, ProgramRef, Team};
 
 enum AIChoice {
     Ability {
@@ -19,7 +19,7 @@ pub enum AIState {
     Done,
 }
 
-pub fn ai_tick(level: &Level, map: &mut MapView) -> AIState {
+pub fn ai_tick(level: &Level, _map: &mut MapView) -> AIState {
     let mut result = AIState::Done;
     for program in level.programs.iter() {
         if program.borrow().team != Team::Enemy {
