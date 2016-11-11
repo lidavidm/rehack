@@ -7,7 +7,7 @@ use voodoo::window::{Point, TermCell};
 use program::{Program, ProgramRef};
 
 pub struct Level {
-    pub layout: Vec<String>,
+    pub layout: Vec<Vec<char>>,
     pub programs: Vec<ProgramRef>,
 }
 
@@ -22,11 +22,17 @@ impl Level {
     pub fn new(description: &[&str; 20]) -> Level {
         let mut layout = Vec::new();
         for s in description.iter() {
-            layout.push(s.to_string());
+            layout.push(s.chars().collect());
         }
         Level {
             layout: layout,
             programs: Vec::new(),
+        }
+    }
+
+    pub fn remove_uplink_at(&mut self, point: Point) {
+        if self.layout[(point.y - 1) as usize][(point.x - 1) as usize] == 'o' {
+            self.layout[(point.y - 1) as usize][(point.x - 1) as usize] = '.';
         }
     }
 
@@ -45,8 +51,8 @@ impl Level {
     }
 
     pub fn passable(&self, point: Point) -> bool {
-        let cell = self.layout[(point.y - 1) as usize].chars().nth((point.x - 1) as usize);
-        if cell != Some('.') {
+        let cell = self.layout[(point.y - 1) as usize][(point.x - 1) as usize];
+        if cell != '.' {
             return false;
         }
 
@@ -66,9 +72,9 @@ impl Level {
             }
         }
 
-        match self.layout[(point.y - 1) as usize].chars().nth((point.x - 1) as usize) {
-            Some('.') => CellContents::Empty,
-            Some('o') => CellContents::Uplink,
+        match self.layout[(point.y - 1) as usize][(point.x - 1) as usize] {
+            '.' => CellContents::Empty,
+            'o' => CellContents::Uplink,
             _ => CellContents::Unpassable,
         }
     }

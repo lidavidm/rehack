@@ -41,6 +41,10 @@ impl<T> ChoiceList<T> {
         self.get_selection()
     }
 
+    pub fn get_selection_index(&self) -> Option<u16> {
+        self.selected.map(|y| y - self.y)
+    }
+
     pub fn get_selection(&self) -> Option<&T> {
         self.selected.map(move |y| &self.list[(y - self.y) as usize].1)
     }

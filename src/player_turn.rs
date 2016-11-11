@@ -165,17 +165,19 @@ pub fn next_setup(state: UiState, event: UiEvent, level: &mut Level, mv: &mut Mo
         },
         (Unselected, ClickInfo(_)) => Unselected,
         (Selected, ClickInfo(p)) => {
-            let had_selection = mv.program_list.get_selection().is_some();
             if let Some(ref program) = mv.program_list.handle_click(p) {
-                mv.info.window.print_at(Point::new(6, 2), "Test");
+                let mut p = (*program).clone();
+                let uplink = mv.map.get_overlay().get("uplink").unwrap().0;
+                p.position = uplink;
+                level.remove_uplink_at(uplink);
+                level.add_program(p);
             }
+            if let Some(idx) = mv.program_list.get_selection_index() {
+                mv.program_list.choices().remove(idx as usize);
+            }
+            mv.program_list.clear_selection();
 
-            if had_selection || mv.program_list.get_selection().is_some() {
-                Selected
-            }
-            else {
-                Unselected
-            }
+            Unselected
         },
 
         (SelectTarget(_), _) | (Animating, _) | (_, EndTurn) => unreachable!(),

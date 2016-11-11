@@ -38,9 +38,9 @@ impl MapView {
     pub fn display(&mut self, level: &Level) {
         for (y, line) in level.layout.iter().enumerate() {
             let y = y + 1;
-            for (x, tile) in line.chars().enumerate() {
+            for (x, tile) in line.iter().enumerate() {
                 let x = x + 1;
-                match Level::convert(tile) {
+                match Level::convert(*tile) {
                     Some(c) => self.window.put_at(Point::new(x as u16, y as u16), c),
                     None => {},
                 }
