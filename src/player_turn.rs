@@ -6,7 +6,7 @@ use info_view::InfoView;
 use map_view::MapView;
 use level::{CellContents, Level};
 use player::Player;
-use program::{Ability, Program, StatusEffect, Team};
+use program::{Ability, Team};
 
 fn select_program(point: Point, level: &Level, map: &mut MapView, info: &mut InfoView) -> UiState {
     use UiState::*;
