@@ -26,7 +26,7 @@ pub fn next(state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelVie
     use UiEvent::*;
     use UiState::*;
 
-    let ModelView { ref mut info, ref mut map, ref mut player } = *mv;
+    let ModelView { ref mut info, ref mut map, ref mut player, .. } = *mv;
 
     let result = match (state, event) {
         (Unselected, ClickMap(p)) => {
@@ -149,7 +149,6 @@ pub fn next_setup(state: UiState, event: UiEvent, level: &mut Level, mv: &mut Mo
                 CellContents::Uplink => {
                     let overlay = mv.map.get_overlay();
                     if overlay.contains_key("uplink") {
-                        overlay.remove("uplink");
                         Unselected
                     }
                     else {
@@ -160,20 +159,39 @@ pub fn next_setup(state: UiState, event: UiEvent, level: &mut Level, mv: &mut Mo
                     }
                 }
                 _ => {
-                    mv.map.get_overlay().remove("uplink");
                     Unselected
                 }
             }
         },
-        (Unselected, ClickInfo(p)) => Unselected,
-        (Selected, ClickInfo(p)) => Unselected,
+        (Unselected, ClickInfo(_)) => Unselected,
+        (Selected, ClickInfo(p)) => {
+            let had_selection = mv.program_list.get_selection().is_some();
+            if let Some(ref program) = mv.program_list.handle_click(p) {
+                mv.info.window.print_at(Point::new(6, 2), "Test");
+            }
+
+            if had_selection || mv.program_list.get_selection().is_some() {
+                Selected
+            }
+            else {
+                Unselected
+            }
+        },
 
         (SelectTarget(_), _) | (Animating, _) | (_, EndTurn) => unreachable!(),
     };
 
     match new_state {
-        Unselected => mv.map.set_help("Choose uplink Θ to load program"),
-        Selected => mv.map.set_help("Choose program to load at left"),
+        Unselected => {
+            mv.map.get_overlay().remove("uplink");
+            mv.info.clear();
+            mv.map.set_help("Choose uplink Θ to load program")
+        },
+        Selected => {
+            mv.program_list.display(&mut mv.info.window);
+            mv.info.window.print_at(Point::new(2, 2), "Programs:");
+            mv.map.set_help("Choose program to load at left")
+        },
         _ => unreachable!(),
     };
 

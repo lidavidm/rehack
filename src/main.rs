@@ -81,6 +81,7 @@ pub struct ModelView {
     info: InfoView,
     map: MapView,
     player: Player,
+    program_list: info_view::ChoiceList<Program>,
 }
 
 #[derive(Clone,Copy,Debug)]
@@ -291,7 +292,12 @@ fn main() {
         info: info_view,
         map: map_view,
         player: player,
+        program_list: info_view::ChoiceList::new(4),
     };
+    // TODO: move this to GameState::StateTransition or something
+    mv.program_list.choices().extend(mv.player.programs.iter().map(|x| {
+        (x.name.to_owned(), x.clone())
+    }));
     let ui_state = UiState::Unselected;
 
     let mut state = State(GameState::Setup, ui_state);
