@@ -3,10 +3,75 @@ use voodoo::window::{FormattedString, Point, Window};
 
 use program::{Ability, Program, Team};
 
+pub struct ChoiceList<T> {
+    y: u16,
+    list: Vec<(String, T)>,
+    selected: Option<(u16, T)>,
+}
+
+impl<T: Copy> ChoiceList<T> {
+    pub fn new(y: u16) -> ChoiceList<T> {
+        ChoiceList {
+            y: y,
+            list: vec![],
+            selected: None,
+        }
+    }
+
+    pub fn choices(&mut self) -> &mut Vec<(String, T)> {
+        &mut self.list
+    }
+
+    pub fn handle_click(&mut self, point: Point) -> Option<T> {
+        if point.y < self.y || point.y >= self.y + self.list.len() as u16 {
+            self.selected = None;
+        }
+        else if let Some((offset, _)) = self.selected {
+            if offset == point.y {
+                self.selected = None;
+            }
+            else {
+                self.selected = Some((point.y, self.list[(point.y - self.y) as usize].1));
+            }
+        }
+        else {
+            self.selected = Some((point.y, self.list[(point.y - self.y) as usize].1));
+        }
+
+        self.selected.map(|x| x.1)
+    }
+
+    pub fn clear_selection(&mut self) {
+        self.selected = None;
+    }
+
+    pub fn clear(&mut self) {
+        self.list.clear();
+        self.selected = None;
+    }
+
+    pub fn display(&self, window: &mut Window) {
+        let mut y = self.y;
+        for (number, &(ref label, _)) in self.list.iter().enumerate() {
+            let number = number as u16 + self.y;
+            let mut f: FormattedString = label.into();
+            f.bg = if let Some((offset, _)) = self.selected {
+                if offset == number {
+                    Some(ColorValue::Red)
+                }
+                else {
+                    Some(ColorValue::Magenta)
+                }
+            } else { Some(ColorValue::Magenta) };
+            window.print_at(Point::new(2, y), f);
+            y += 1;
+        }
+    }
+}
+
 pub struct InfoView {
     window: Window,
-    ability_list: Vec<(String, Ability)>,
-    selected_ability: Option<(usize, Ability)>,
+    ability_list: ChoiceList<Ability>,
     team: Team,
     pub primary_action: String,
 }
@@ -15,8 +80,7 @@ impl InfoView {
     pub fn new(window: Window) -> InfoView {
         let info = InfoView {
             window: window,
-            ability_list: Vec::new(),
-            selected_ability: None,
+            ability_list: ChoiceList::new(6),
             team: Team::Player,
             primary_action: "     End Turn     ".to_owned(),
         };
@@ -44,7 +108,6 @@ impl InfoView {
 
     pub fn clear(&mut self) {
         self.ability_list.clear();
-        self.selected_ability = None;
         self.window.clear();
         self.window.border();
         self.window.print_at(Point::new(2, 1), match self.team {
@@ -57,20 +120,7 @@ impl InfoView {
     }
 
     pub fn display_abilities(&mut self) {
-        let mut y = 6;
-        for (ability_number, &(ref name, _)) in self.ability_list.iter().enumerate() {
-            let mut f: FormattedString = name.into();
-            f.bg = if let Some((offset, _)) = self.selected_ability {
-                if offset == ability_number {
-                    Some(ColorValue::Red)
-                }
-                else {
-                    Some(ColorValue::Magenta)
-                }
-            } else { Some(ColorValue::Magenta) };
-            self.window.print_at(Point::new(2, y), f);
-            y += 1;
-        }
+        self.ability_list.display(&mut self.window);
     }
 
     // TODO: take a ProgramRef and store it (maybe a weak reference)
@@ -84,7 +134,7 @@ impl InfoView {
         }
         else {
             self.window.print_at(Point::new(2, 4), "Abilities:");
-            self.ability_list.extend(program.abilities.iter().cloned());
+            self.ability_list.choices().extend(program.abilities.iter().cloned());
 
             self.display_abilities();
         }
@@ -98,19 +148,14 @@ impl InfoView {
 
     // TODO: return the ability range or something? Ability descriptor
     pub fn translate_click(&mut self, click: Point) -> Option<Ability> {
-        for (offset, &(_, ability)) in self.ability_list.iter().enumerate() {
-            if click.y == 6 + offset as u16 {
-                self.selected_ability = Some((offset, ability));
-                break;
-            }
-        }
+        let result = self.ability_list.handle_click(click);
         self.display_abilities();
 
-        self.selected_ability.map(|(_, ability)| ability)
+        result
     }
 
     pub fn clear_ability(&mut self) {
-        self.selected_ability = None;
+        self.ability_list.clear_selection();
         self.display_abilities();
     }
 }
