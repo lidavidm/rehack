@@ -1,5 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
+
+use voodoo::color::ColorValue;
 use voodoo::window::{Point, TermCell};
 
 use program::{Program, ProgramRef};
@@ -13,6 +15,7 @@ pub enum CellContents {
     Unpassable,
     Empty,
     Program(ProgramRef),
+    Uplink,
 }
 
 impl Level {
@@ -65,6 +68,7 @@ impl Level {
 
         match self.layout[(point.y - 1) as usize].chars().nth((point.x - 1) as usize) {
             Some('.') => CellContents::Empty,
+            Some('o') => CellContents::Uplink,
             _ => CellContents::Unpassable,
         }
     }
@@ -74,7 +78,11 @@ impl Level {
     pub fn convert(c: char) -> Option<TermCell> {
         match c {
             '.' => Some('·'.into()),
-            'o' => Some('O'.into()),
+            'o' => {
+                let mut tc: TermCell = 'Θ'.into();
+                tc.bg = Some(ColorValue::Green);
+                Some(tc)
+            }
             _ => None,
         }
     }

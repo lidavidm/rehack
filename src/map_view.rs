@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use voodoo::color::ColorValue;
 use voodoo::window::{Point, TermCell, Window};
 
@@ -9,6 +11,7 @@ pub struct MapView {
     highlight: Option<ProgramRef>,
     highlight_range: Option<usize>,
     overlay: Vec<(Point, TermCell)>,
+    named_overlay: HashMap<String, (Point, TermCell)>,
     help: Option<String>,
 }
 
@@ -19,8 +22,13 @@ impl MapView {
             highlight: None,
             highlight_range: None,
             overlay: Vec::new(),
+            named_overlay: HashMap::new(),
             help: None,
         }
+    }
+
+    pub fn get_overlay(&mut self) -> &mut HashMap<String, (Point, TermCell)> {
+        &mut self.named_overlay
     }
 
     pub fn from_global_frame(&self, p: Point) -> Option<Point> {
@@ -52,6 +60,10 @@ impl MapView {
         }
 
         for &(p, c) in self.overlay.iter() {
+            self.window.put_at(p, c);
+        }
+
+        for &(p, c) in self.named_overlay.values() {
             self.window.put_at(p, c);
         }
 
@@ -99,7 +111,7 @@ impl MapView {
                             let p = Point::new((x as isize + dx) as u16, (y as isize + dy) as u16);
                             if let Some(tc) = match level.contents_of(p) {
                                 CellContents::Empty => Some('·'.into()),
-                                CellContents::Unpassable => None,
+                                CellContents::Unpassable | CellContents::Uplink => None,
                                 CellContents::Program(p) => {
                                     if p.borrow().position == position {
                                         None

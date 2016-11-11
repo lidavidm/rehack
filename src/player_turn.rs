@@ -1,4 +1,5 @@
-use voodoo::window::Point;
+use voodoo::color::ColorValue;
+use voodoo::window::{Point, TermCell};
 
 use super::{UiEvent, UiState, ModelView};
 use info_view::InfoView;
@@ -143,16 +144,35 @@ pub fn next_setup(state: UiState, event: UiEvent, level: &mut Level, mv: &mut Mo
         (state, Quit) => state,
         (state, Tick) => state,
 
-        (Unselected, ClickMap(p)) => Selected,
+        (Unselected, ClickMap(p)) | (Selected, ClickMap(p)) => {
+            match level.contents_of(p) {
+                CellContents::Uplink => {
+                    let overlay = mv.map.get_overlay();
+                    if overlay.contains_key("uplink") {
+                        overlay.remove("uplink");
+                        Unselected
+                    }
+                    else {
+                        overlay.insert(
+                            "uplink".to_owned(),
+                            (p, TermCell::new_with_bg('O', ColorValue::Cyan)));
+                        Selected
+                    }
+                }
+                _ => {
+                    mv.map.get_overlay().remove("uplink");
+                    Unselected
+                }
+            }
+        },
         (Unselected, ClickInfo(p)) => Unselected,
-        (Selected, ClickMap(p)) => Unselected,
         (Selected, ClickInfo(p)) => Unselected,
 
         (SelectTarget(_), _) | (Animating, _) | (_, EndTurn) => unreachable!(),
     };
 
     match new_state {
-        Unselected => mv.map.set_help("Choose uplink O to load program"),
+        Unselected => mv.map.set_help("Choose uplink Θ to load program"),
         Selected => mv.map.set_help("Choose program to load at left"),
         _ => unreachable!(),
     };

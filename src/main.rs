@@ -251,8 +251,13 @@ fn main() {
     use voodoo::terminal::{Mode, Terminal};
 
     let mut level = Level::new(&LEVEL_DESCR);
-    level.add_program(Program::new(Team::Enemy, Point::new(7, 10), "Hack"));
-    level.add_program(Program::new(Team::Enemy, Point::new(9, 10), "Hack"));
+    let mut enemy1 = Program::new(Team::Enemy, Point::new(7, 10), "Hack");
+    enemy1.abilities.push(("Bitblast".to_owned(), Ability::Destroy { damage: 2, range: 1 }));
+    let mut enemy2 = enemy1.clone();
+    enemy2.position = Point::new(9, 10);
+
+    level.add_program(enemy1);
+    level.add_program(enemy2);
 
     let mut terminal = Terminal::new();
     terminal.cursor(Mode::Disabled);
@@ -274,7 +279,13 @@ fn main() {
     map_view.display(&level);
     map_view.refresh(stdout);
 
-    let player = Player::new("David");
+    let mut player = Player::new("David");
+    let mut prog1 = Program::new(Team::Player, Point::new(0, 0), "Hack 1");
+    prog1.abilities.push(("Bitblast".to_owned(), Ability::Destroy { damage: 2, range: 1 }));
+    let mut prog2 = prog1.clone();
+    prog2.name = "Hack 2".to_owned();
+    player.programs.push(prog1);
+    player.programs.push(prog2);
 
     let mut mv = ModelView {
         info: info_view,

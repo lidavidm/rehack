@@ -55,6 +55,7 @@ impl Ability {
     }
 }
 
+#[derive(Clone,Copy,Debug)]
 pub struct ProgramTurnState {
     pub moves_made: usize,
     pub ability_used: bool,
@@ -66,6 +67,7 @@ pub enum Team {
     Enemy,
 }
 
+#[derive(Clone,Debug)]
 pub struct Program {
     pub team: Team,
     pub position: Point,
@@ -96,7 +98,7 @@ impl Program {
             position: position,
             tail: vec![],
             name: name.to_owned(),
-            abilities: vec![("Bitblast".to_owned(), Ability::Destroy { damage: 2, range: 1 })],
+            abilities: vec![],
             max_tail: 4,
             max_moves: 3,
             turn_state: ProgramTurnState::new(),
