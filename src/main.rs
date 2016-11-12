@@ -116,11 +116,17 @@ impl State {
     fn next(self, event: termion::event::Event, level: &mut Level, mv: &mut ModelView) -> State {
         use GameState::*;
         if let Some(event) = self.translate_event(event, level, mv) {
-            // Simplify this - don't need to match both
             match self {
                 State(Setup, ui) => Self::next_setup_turn(ui, event, level, mv),
                 State(PlayerTurn, ui) => match event {
-                    UiEvent::EndTurn => State(AITurnTransition, UiState::Unselected),
+                    UiEvent::EndTurn => {
+                        if level.check_victory().is_some() {
+                            State(Quit, UiState::Unselected)
+                        }
+                        else {
+                            State(AITurnTransition, UiState::Unselected)
+                        }
+                    },
                     _ => Self::next_player_turn(ui, event, level, mv)
                 },
                 State(AITurnTransition, _) | State(PlayerTurnTransition, _) | State(AITurn, _) | State(Quit, _) => self,
@@ -138,43 +144,17 @@ impl State {
             State(Setup, ui) => Self::next_setup_turn(ui, UiEvent::Tick, level, mv),
             State(PlayerTurn, ui) => Self::next_player_turn(ui, UiEvent::Tick, level, mv),
             State(AITurnTransition, _) => {
-                let mut found_player = false;
-                let mut found_enemy = false;
-                for program in level.programs.iter() {
-                    match program.borrow().team {
-                        Team::Player => found_player = true,
-                        Team::Enemy => found_enemy = true,
-                    };
-                    if found_player && found_enemy {
-                        break;
-                    }
-                }
-                if !found_player || !found_enemy {
-                    return State(Quit, UiState::Unselected);
-                }
-
                 begin_turn(Team::Enemy, level, mv);
                 State(AITurn, UiState::Unselected)
             }
             State(PlayerTurnTransition, _) => {
-                // TODO: Refactor
-                let mut found_player = false;
-                let mut found_enemy = false;
-                for program in level.programs.iter() {
-                    match program.borrow().team {
-                        Team::Player => found_player = true,
-                        Team::Enemy => found_enemy = true,
-                    };
-                    if found_player && found_enemy {
-                        break;
-                    }
+                if level.check_victory().is_some() {
+                    State(Quit, UiState::Unselected)
                 }
-                if !found_player || !found_enemy {
-                    return State(Quit, UiState::Unselected);
+                else {
+                    begin_turn(Team::Player, level, mv);
+                    State(PlayerTurn, UiState::Unselected)
                 }
-
-                begin_turn(Team::Player, level, mv);
-                State(PlayerTurn, UiState::Unselected)
             }
             State(AITurn, UiState::Animating) => {
                 let modified = update_programs(level, &mut mv.map);
@@ -287,7 +267,7 @@ fn main() {
     let mut enemy1 = Program::new(Team::Enemy, Point::new(7, 10), "Hack");
     enemy1.abilities.push(("Bitblast".to_owned(), Ability::Destroy { damage: 2, range: 1 }));
     let mut enemy2 = enemy1.clone();
-    enemy2.position = Point::new(9, 10);
+    enemy2.position = Point::new(7, 9);
 
     level.add_program(enemy1);
     level.add_program(enemy2);

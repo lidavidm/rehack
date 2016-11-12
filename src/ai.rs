@@ -48,7 +48,7 @@ pub fn ai_tick(level: &Level, _map: &mut MapView) -> AIState {
                 }
             }
         }
-        
+
         let east = Point::new(x + 1, y);
         if level.passable(east) {
             choices.push((50, AIChoice::Move(east)));

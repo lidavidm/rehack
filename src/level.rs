@@ -4,7 +4,7 @@ use std::rc::Rc;
 use voodoo::color::ColorValue;
 use voodoo::window::{Point, TermCell};
 
-use program::{Program, ProgramRef};
+use program::{Program, ProgramRef, Team};
 
 pub struct Level {
     pub layout: Vec<Vec<char>>,
@@ -90,6 +90,29 @@ impl Level {
                 Some(tc)
             }
             _ => None,
+        }
+    }
+
+    pub fn check_victory(&mut self) -> Option<Team> {
+        let mut found_player = false;
+        let mut found_enemy = false;
+        for program in self.programs.iter() {
+            match program.borrow().team {
+                Team::Player => found_player = true,
+                Team::Enemy => found_enemy = true,
+            };
+            if found_player && found_enemy {
+                break;
+            }
+        }
+        if !found_player {
+            Some(Team::Enemy)
+        }
+        else if !found_enemy {
+            Some(Team::Player)
+        }
+        else {
+            None
         }
     }
 }
