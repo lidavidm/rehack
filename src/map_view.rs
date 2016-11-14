@@ -16,7 +16,8 @@ pub struct MapView {
 }
 
 impl MapView {
-    pub fn new(window: Window) -> MapView {
+    pub fn new(mut window: Window) -> MapView {
+        window.border();
         MapView {
             window: window,
             highlight: None,

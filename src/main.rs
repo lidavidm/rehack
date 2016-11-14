@@ -71,9 +71,9 @@ enum GameState {
     Setup,
     PlayerTurn,
     AITurn,
+    SetupTransition,
     AITurnTransition,
     PlayerTurnTransition,
-    // AIExecute,
     Quit,
 }
 
@@ -129,7 +129,9 @@ impl State {
                     },
                     _ => Self::next_player_turn(ui, event, level, mv)
                 },
-                State(AITurnTransition, _) | State(PlayerTurnTransition, _) | State(AITurn, _) | State(Quit, _) => self,
+                State(SetupTransition, _) |
+                State(AITurnTransition, _) | State(PlayerTurnTransition, _) |
+                State(AITurn, _) | State(Quit, _) => self,
             }
         }
         else {
@@ -174,8 +176,32 @@ impl State {
                     ai::AIState::Plotting => State(AITurn, UiState::Unselected),
                     ai::AIState::WaitingAnimation => State(AITurn, UiState::Animating),
                 }
-            },
-            _ => unimplemented!(),
+            }
+            State(SetupTransition, _) => {
+                let mut enemy1 = Program::new(Team::Enemy, Point::new(7, 10), "Hack");
+                enemy1.abilities.push(("Bitblast".to_owned(), Ability::Destroy { damage: 2, range: 1 }));
+                let mut enemy2 = enemy1.clone();
+                enemy2.position = Point::new(7, 9);
+
+                level.add_program(enemy1);
+                level.add_program(enemy2);
+
+                let mut prog1 = Program::new(Team::Player, Point::new(0, 0), "Hack 1");
+                prog1.abilities.push(("Bitblast".to_owned(), Ability::Destroy { damage: 2, range: 1 }));
+                let mut prog2 = prog1.clone();
+                prog2.name = "Hack 2".to_owned();
+                mv.player.programs.push(prog1);
+                mv.player.programs.push(prog2);
+
+                mv.info.primary_action = ">Launch Intrusion<".to_owned();
+                mv.info.clear();
+                mv.map.display(&level);
+                mv.program_list.choices().extend(mv.player.programs.iter().map(|x| {
+                    (x.name.to_owned(), x.clone())
+                }));
+                State(Setup, UiState::Unselected)
+            }
+            State(Quit, _) => self,
         }
     }
 
@@ -264,13 +290,6 @@ fn main() {
     use voodoo::terminal::{Mode, Terminal};
 
     let mut level = Level::new(&LEVEL_DESCR);
-    let mut enemy1 = Program::new(Team::Enemy, Point::new(7, 10), "Hack");
-    enemy1.abilities.push(("Bitblast".to_owned(), Ability::Destroy { damage: 2, range: 1 }));
-    let mut enemy2 = enemy1.clone();
-    enemy2.position = Point::new(7, 9);
-
-    level.add_program(enemy1);
-    level.add_program(enemy2);
 
     let mut terminal = Terminal::new();
     terminal.cursor(Mode::Disabled);
@@ -279,26 +298,14 @@ fn main() {
 
     stdout.flush().unwrap();
 
-    let mut info = voodoo::window::Window::new(Point::new(0, 0), 20, 24);
-    let mut map = voodoo::window::Window::new(Point::new(20, 0), 60, 24);
-    info.border();
-    map.border();
-
+    let info = voodoo::window::Window::new(Point::new(0, 0), 20, 24);
+    let map = voodoo::window::Window::new(Point::new(20, 0), 60, 24);
     let mut info_view = InfoView::new(info);
     let mut map_view = MapView::new(map);
-    info_view.primary_action = ">Launch Intrusion<".to_owned();
-    info_view.clear();
-    info_view.refresh(stdout);
-    map_view.display(&level);
-    map_view.refresh(stdout);
+    let player = Player::new("David");
 
-    let mut player = Player::new("David");
-    let mut prog1 = Program::new(Team::Player, Point::new(0, 0), "Hack 1");
-    prog1.abilities.push(("Bitblast".to_owned(), Ability::Destroy { damage: 2, range: 1 }));
-    let mut prog2 = prog1.clone();
-    prog2.name = "Hack 2".to_owned();
-    player.programs.push(prog1);
-    player.programs.push(prog2);
+    info_view.refresh(stdout);
+    map_view.refresh(stdout);
 
     let mut mv = ModelView {
         info: info_view,
@@ -306,13 +313,9 @@ fn main() {
         player: player,
         program_list: info_view::ChoiceList::new(4),
     };
-    // TODO: move this to GameState::StateTransition or something
-    mv.program_list.choices().extend(mv.player.programs.iter().map(|x| {
-        (x.name.to_owned(), x.clone())
-    }));
     let ui_state = UiState::Unselected;
 
-    let mut state = State(GameState::Setup, ui_state);
+    let mut state = State(GameState::SetupTransition, ui_state);
 
     let (tx, rx) = channel();
     let guard = unsafe {
