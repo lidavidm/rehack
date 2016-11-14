@@ -1,7 +1,7 @@
 use voodoo::color::ColorValue;
 use voodoo::window::{Point, TermCell};
 
-use super::{UiEvent, UiState, ModelView};
+use game_state::{self, UiEvent, UiState, ModelView};
 use info_view::InfoView;
 use map_view::MapView;
 use level::{CellContents, Level};
@@ -9,7 +9,7 @@ use player::Player;
 use program::{Ability, Team};
 
 fn select_program(point: Point, level: &Level, map: &mut MapView, info: &mut InfoView) -> UiState {
-    use UiState::*;
+    use game_state::UiState::*;
 
     for program in level.programs.iter() {
         if program.borrow().intersects(point) && program.borrow().team == Team::Player {
@@ -23,8 +23,8 @@ fn select_program(point: Point, level: &Level, map: &mut MapView, info: &mut Inf
 }
 
 pub fn next(state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelView) -> UiState {
-    use UiEvent::*;
-    use UiState::*;
+    use game_state::UiEvent::*;
+    use game_state::UiState::*;
 
     let ModelView { ref mut info, ref mut map, ref mut player, .. } = *mv;
 
@@ -105,7 +105,7 @@ pub fn next(state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelVie
             }
         }
         (state, Tick) => {
-            let modified = super::update_programs(level, map);
+            let modified = game_state::update_programs(level, map);
 
             match state {
                 Animating => {
@@ -137,8 +137,8 @@ pub fn next(state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelVie
 }
 
 pub fn next_setup(state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelView) -> UiState {
-    use UiState::*;
-    use UiEvent::*;
+    use game_state::UiState::*;
+    use game_state::UiEvent::*;
 
     let new_state = match (state, event) {
         (state, Quit) => state,
