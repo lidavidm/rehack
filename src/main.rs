@@ -85,6 +85,7 @@ fn main() {
         map: map_view,
         player: player,
         program_list: info_view::ChoiceList::new(4),
+        level: level,
     };
     let ui_state = UiState::Unselected;
 
@@ -112,7 +113,7 @@ fn main() {
             let msg = rx.try_recv();
             match msg {
                 Ok(evt) => {
-                    state = state.next(evt, &mut level, &mut mv);
+                    state = state.next(evt, &mut mv);
                     if let State(GameState::Quit, _) = state {
                         break 'main;
                     }
@@ -126,7 +127,7 @@ fn main() {
         dt += now - t;
 
         while dt >= TICK_TIME * MS {
-            state = state.tick(&mut level, &mut mv);
+            state = state.tick(&mut mv);
             if let State(GameState::Quit, _) = state {
                 break 'main;
             }
@@ -134,7 +135,7 @@ fn main() {
         }
 
         mv.info.refresh(stdout);
-        mv.map.display(&level);
+        mv.map.display(&mv.level);
         mv.map.refresh(stdout);
         t = now;
 

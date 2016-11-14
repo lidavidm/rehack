@@ -5,7 +5,12 @@ use level::{CellContents, Level};
 use player::Player;
 use program::{Ability, Team};
 
-pub fn next(state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelView) -> UiState {
+pub enum Transition {
+    Ui(UiState),
+    Level(Level),
+}
+
+pub fn next(state: UiState, event: UiEvent, mv: &mut ModelView) -> Transition {
     use game_state::UiEvent::*;
     use game_state::UiState::*;
 
@@ -15,5 +20,5 @@ pub fn next(state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelVie
         _ => unimplemented!(),
     };
 
-    result
+    Transition::Ui(result)
 }

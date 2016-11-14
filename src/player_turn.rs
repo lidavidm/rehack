@@ -22,11 +22,11 @@ fn select_program(point: Point, level: &Level, map: &mut MapView, info: &mut Inf
     Unselected
 }
 
-pub fn next(state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelView) -> UiState {
+pub fn next(state: UiState, event: UiEvent, mv: &mut ModelView) -> UiState {
     use game_state::UiEvent::*;
     use game_state::UiState::*;
 
-    let ModelView { ref mut info, ref mut map, ref mut player, .. } = *mv;
+    let ModelView { ref mut info, ref mut map, ref mut player, ref mut level, .. } = *mv;
 
     let result = match (state, event) {
         (Unselected, ClickMap(p)) => {
@@ -136,7 +136,7 @@ pub fn next(state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelVie
     result
 }
 
-pub fn next_setup(state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelView) -> UiState {
+pub fn next_setup(state: UiState, event: UiEvent, mv: &mut ModelView) -> UiState {
     use game_state::UiState::*;
     use game_state::UiEvent::*;
 
@@ -145,7 +145,7 @@ pub fn next_setup(state: UiState, event: UiEvent, level: &mut Level, mv: &mut Mo
         (state, Tick) => state,
 
         (Unselected, ClickMap(p)) | (Selected, ClickMap(p)) => {
-            match level.contents_of(p) {
+            match mv.level.contents_of(p) {
                 CellContents::Uplink => {
                     let overlay = mv.map.get_overlay();
                     if overlay.contains_key("uplink") {
@@ -169,8 +169,8 @@ pub fn next_setup(state: UiState, event: UiEvent, level: &mut Level, mv: &mut Mo
                 let mut p = (*program).clone();
                 let uplink = mv.map.get_overlay().get("uplink").unwrap().0;
                 p.position = uplink;
-                level.remove_uplink_at(uplink);
-                level.add_program(p);
+                mv.level.remove_uplink_at(uplink);
+                mv.level.add_program(p);
             }
             if let Some(idx) = mv.program_list.get_selection_index() {
                 mv.program_list.choices().remove(idx as usize);

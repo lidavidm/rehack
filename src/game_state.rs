@@ -6,6 +6,7 @@ use voodoo::window::{Point};
 use ai;
 use info_view::{self, InfoView};
 use map_view::MapView;
+use mission_select;
 use level::Level;
 use player::Player;
 use player_turn;
@@ -38,6 +39,7 @@ pub enum GameState {
     AITurnTransition,
     PlayerTurnTransition,
     Quit,
+    MissionSelect,
 }
 
 pub struct ModelView {
@@ -45,13 +47,14 @@ pub struct ModelView {
     pub map: MapView,
     pub player: Player,
     pub program_list: info_view::ChoiceList<Program>,
+    pub level: Level,
 }
 
 #[derive(Clone,Copy,Debug)]
 pub struct State(pub GameState, pub UiState);
 
 impl State {
-    pub fn translate_event(&self, event: Event, _level: &mut Level, mv: &mut ModelView) -> Option<UiEvent> {
+    pub fn translate_event(&self, event: Event, mv: &mut ModelView) -> Option<UiEvent> {
         use self::GameState::*;
 
         match (self, event) {
@@ -77,23 +80,24 @@ impl State {
         }
     }
 
-    pub fn next(self, event: termion::event::Event, level: &mut Level, mv: &mut ModelView) -> State {
+    pub fn next(self, event: termion::event::Event, mv: &mut ModelView) -> State {
         use self::GameState::*;
 
-        if let Some(event) = self.translate_event(event, level, mv) {
+        if let Some(event) = self.translate_event(event, mv) {
             match self {
-                State(Setup, ui) => Self::next_setup_turn(ui, event, level, mv),
+                State(Setup, ui) => Self::next_setup_turn(ui, event, mv),
                 State(PlayerTurn, ui) => match event {
                     UiEvent::EndTurn => {
-                        if level.check_victory().is_some() {
+                        if mv.level.check_victory().is_some() {
                             State(Quit, UiState::Unselected)
                         }
                         else {
                             State(AITurnTransition, UiState::Unselected)
                         }
                     },
-                    _ => Self::next_player_turn(ui, event, level, mv)
+                    _ => Self::next_player_turn(ui, event, mv)
                 },
+                State(MissionSelect, ui) => Self::next_mission_turn(ui, event, mv),
                 State(SetupTransition, _) |
                 State(AITurnTransition, _) | State(PlayerTurnTransition, _) |
                 State(AITurn, _) | State(Quit, _) => self,
@@ -104,27 +108,28 @@ impl State {
         }
     }
 
-    pub fn tick(self, level: &mut Level, mv: &mut ModelView) -> State {
+    pub fn tick(self, mv: &mut ModelView) -> State {
         use self::GameState::*;
 
         match self {
-            State(Setup, ui) => Self::next_setup_turn(ui, UiEvent::Tick, level, mv),
-            State(PlayerTurn, ui) => Self::next_player_turn(ui, UiEvent::Tick, level, mv),
+            State(Setup, ui) => Self::next_setup_turn(ui, UiEvent::Tick, mv),
+            State(PlayerTurn, ui) => Self::next_player_turn(ui, UiEvent::Tick, mv),
+            State(MissionSelect, ui) => Self::next_mission_turn(ui, UiEvent::Tick, mv),
             State(AITurnTransition, _) => {
-                begin_turn(Team::Enemy, level, mv);
+                begin_turn(Team::Enemy, mv);
                 State(AITurn, UiState::Unselected)
             }
             State(PlayerTurnTransition, _) => {
-                if level.check_victory().is_some() {
+                if mv.level.check_victory().is_some() {
                     State(Quit, UiState::Unselected)
                 }
                 else {
-                    begin_turn(Team::Player, level, mv);
+                    begin_turn(Team::Player, mv);
                     State(PlayerTurn, UiState::Unselected)
                 }
             }
             State(AITurn, UiState::Animating) => {
-                let modified = update_programs(level, &mut mv.map);
+                let modified = update_programs(&mut mv.level, &mut mv.map);
 
                 if !modified {
                     State(AITurn, UiState::Unselected)
@@ -134,7 +139,7 @@ impl State {
                 }
             }
             State(AITurn, _) => {
-                let ai_state = ai::ai_tick(level, &mut mv.map);
+                let ai_state = ai::ai_tick(&mut mv.level, &mut mv.map);
                 mv.map.set_help(format!("AI STATUS: {:?}", ai_state));
                 match ai_state {
                     ai::AIState::Done => State(PlayerTurnTransition, UiState::Unselected),
@@ -148,8 +153,8 @@ impl State {
                 let mut enemy2 = enemy1.clone();
                 enemy2.position = Point::new(7, 9);
 
-                level.add_program(enemy1);
-                level.add_program(enemy2);
+                mv.level.add_program(enemy1);
+                mv.level.add_program(enemy2);
 
                 let mut prog1 = Program::new(Team::Player, Point::new(0, 0), "Hack 1");
                 prog1.abilities.push(("Bitblast".to_owned(), Ability::Destroy { damage: 2, range: 1 }));
@@ -160,7 +165,7 @@ impl State {
 
                 mv.info.primary_action = ">Launch Intrusion<".to_owned();
                 mv.info.clear();
-                mv.map.display(&level);
+                mv.map.display(&mv.level);
                 mv.program_list.choices().extend(mv.player.programs.iter().map(|x| {
                     (x.name.to_owned(), x.clone())
                 }));
@@ -170,23 +175,35 @@ impl State {
         }
     }
 
-    pub fn next_player_turn(ui_state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelView) -> State {
+    pub fn next_player_turn(ui_state: UiState, event: UiEvent, mv: &mut ModelView) -> State {
         use self::GameState::*;
 
         match event {
             UiEvent::ClickMap(_) | UiEvent::ClickInfo(_) | UiEvent::Tick => {
-                State(PlayerTurn, player_turn::next(ui_state, event, level, mv))
+                State(PlayerTurn, player_turn::next(ui_state, event, mv))
             }
             UiEvent::EndTurn | UiEvent::Quit => unreachable!(),
         }
     }
 
-    pub fn next_setup_turn(ui_state: UiState, event: UiEvent, level: &mut Level, mv: &mut ModelView) -> State {
+    pub fn next_mission_turn(ui_state: UiState, event: UiEvent, mv: &mut ModelView) -> State {
         use self::GameState::*;
-        
+
+        match mission_select::next(ui_state, event, mv) {
+            mission_select::Transition::Ui(ui) => State(MissionSelect, ui),
+            mission_select::Transition::Level(level) => {
+                mv.level = level;
+                State(SetupTransition, UiState::Unselected)
+            }
+        }
+    }
+
+    pub fn next_setup_turn(ui_state: UiState, event: UiEvent, mv: &mut ModelView) -> State {
+        use self::GameState::*;
+
         match event {
             UiEvent::ClickMap(_) | UiEvent::ClickInfo(_) | UiEvent::Tick => {
-                State(Setup, player_turn::next_setup(ui_state, event, level, mv))
+                State(Setup, player_turn::next_setup(ui_state, event, mv))
             }
             UiEvent::EndTurn => {
                 // TODO: reset
@@ -198,13 +215,13 @@ impl State {
     }
 }
 
-pub fn begin_turn(team: Team, level: &mut Level, mv: &mut ModelView) {
+pub fn begin_turn(team: Team, mv: &mut ModelView) {
     mv.info.set_team(team);
     mv.info.clear();
     mv.map.clear_range();
     mv.map.clear_highlight();
-    mv.map.update_highlight(level);
-    level.begin_turn();
+    mv.map.update_highlight(&mut mv.level);
+    mv.level.begin_turn();
 }
 
 pub fn update_programs(level: &mut Level, map: &mut MapView) -> bool {
