@@ -30,7 +30,7 @@ pub enum UiEvent {
     EndTurn,
 }
 
-#[derive(Clone,Copy,Debug)]
+#[derive(Debug)]
 pub enum GameState {
     Setup,
     PlayerTurn,
@@ -39,7 +39,7 @@ pub enum GameState {
     AITurnTransition,
     PlayerTurnTransition,
     Quit,
-    MissionSelect,
+    MissionSelect(mission_select::State),
 }
 
 pub struct ModelView {
@@ -50,7 +50,7 @@ pub struct ModelView {
     pub level: Level,
 }
 
-#[derive(Clone,Copy,Debug)]
+#[derive(Debug)]
 pub struct State(pub GameState, pub UiState);
 
 impl State {
@@ -97,7 +97,7 @@ impl State {
                     },
                     _ => Self::next_player_turn(ui, event, mv)
                 },
-                State(MissionSelect, ui) => Self::next_mission_turn(ui, event, mv),
+                State(MissionSelect(ms), ui) => Self::next_mission_turn(ms, ui, event, mv),
                 State(SetupTransition, _) |
                 State(AITurnTransition, _) | State(PlayerTurnTransition, _) |
                 State(AITurn, _) | State(Quit, _) => self,
@@ -114,7 +114,7 @@ impl State {
         match self {
             State(Setup, ui) => Self::next_setup_turn(ui, UiEvent::Tick, mv),
             State(PlayerTurn, ui) => Self::next_player_turn(ui, UiEvent::Tick, mv),
-            State(MissionSelect, ui) => Self::next_mission_turn(ui, UiEvent::Tick, mv),
+            State(MissionSelect(ms), ui) => Self::next_mission_turn(ms, ui, UiEvent::Tick, mv),
             State(AITurnTransition, _) => {
                 begin_turn(Team::Enemy, mv);
                 State(AITurn, UiState::Unselected)
@@ -186,11 +186,11 @@ impl State {
         }
     }
 
-    pub fn next_mission_turn(ui_state: UiState, event: UiEvent, mv: &mut ModelView) -> State {
+    pub fn next_mission_turn(mut mission_state: mission_select::State, ui_state: UiState, event: UiEvent, mv: &mut ModelView) -> State {
         use self::GameState::*;
 
-        match mission_select::next(ui_state, event, mv) {
-            mission_select::Transition::Ui(ui) => State(MissionSelect, ui),
+        match mission_select::next(&mut mission_state, ui_state, event, mv) {
+            mission_select::Transition::Ui(ui) => State(MissionSelect(mission_state), ui),
             mission_select::Transition::Level(level) => {
                 mv.level = level;
                 State(SetupTransition, UiState::Unselected)

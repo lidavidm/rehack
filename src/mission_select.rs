@@ -10,13 +10,17 @@ pub enum Transition {
     Level(Level),
 }
 
-pub fn next(state: UiState, event: UiEvent, mv: &mut ModelView) -> Transition {
+#[derive(Debug)]
+pub struct State {
+}
+
+pub fn next(mission_state: &mut State, ui_state: UiState, event: UiEvent, mv: &mut ModelView) -> Transition {
     use game_state::UiEvent::*;
     use game_state::UiState::*;
 
     let ModelView { ref mut info, ref mut map, ref mut player, .. } = *mv;
 
-    let result = match (state, event) {
+    let result = match (ui_state, event) {
         _ => unimplemented!(),
     };
 
