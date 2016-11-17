@@ -134,9 +134,7 @@ fn main() {
             dt -= TICK_TIME * MS;
         }
 
-        mv.info.refresh(stdout);
-        mv.map.display(&mv.level);
-        mv.map.refresh(stdout);
+        state.display(stdout, &mut mv);
         t = now;
 
         thread::sleep(Duration::from_millis((TICK_TIME - dt / MS) / 2));

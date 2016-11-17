@@ -175,6 +175,21 @@ impl State {
         }
     }
 
+    pub fn display(&mut self, stdout: &mut ::std::io::Stdout, mv: &mut ModelView) {
+        use self::GameState::*;
+
+        match self.0 {
+            MissionSelect(ref mut state) => {
+                mission_select::display(state, stdout, mv);
+            }
+            _ => {
+                mv.info.refresh(stdout);
+                mv.map.display(&mv.level);
+                mv.map.refresh(stdout);
+            }
+        }
+    }
+
     pub fn next_player_turn(ui_state: UiState, event: UiEvent, mv: &mut ModelView) -> State {
         use self::GameState::*;
 

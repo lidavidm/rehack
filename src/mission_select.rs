@@ -39,3 +39,6 @@ pub fn next(mission_state: &mut State, ui_state: UiState, event: UiEvent, mv: &m
 
     Transition::Ui(result)
 }
+
+pub fn display(mission_state: &mut State, stdout: &mut ::std::io::Stdout, mv: &mut ModelView) {
+}
