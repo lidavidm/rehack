@@ -86,7 +86,7 @@ impl Level {
             '.' => Some('·'.into()),
             'o' => {
                 let mut tc: TermCell = 'Θ'.into();
-                tc.bg = Some(ColorValue::Green);
+                tc.bg = Some(ColorValue::Yellow);
                 Some(tc)
             }
             _ => None,

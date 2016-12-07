@@ -61,6 +61,7 @@ fn main() {
     use game_state::{ModelView, GameState, State, UiState};
 
     use voodoo::terminal::{Mode, Terminal};
+    use voodoo::window::{Window};
 
     let mut level = Level::new(&LEVEL_DESCR);
 
@@ -71,14 +72,13 @@ fn main() {
 
     stdout.flush().unwrap();
 
-    let info = voodoo::window::Window::new(Point::new(0, 0), 20, 24);
-    let map = voodoo::window::Window::new(Point::new(20, 0), 60, 24);
+    let info = Window::new(Point::new(0, 0), 20, 24);
+    let map = Window::new(Point::new(20, 0), 60, 24);
+    let title = Window::new(Point::new(0, 0), 80, 24);
+
     let mut info_view = InfoView::new(info);
     let mut map_view = MapView::new(map);
     let player = Player::new("David");
-
-    info_view.refresh(stdout);
-    map_view.refresh(stdout);
 
     let mut mv = ModelView {
         info: info_view,
@@ -89,7 +89,9 @@ fn main() {
     };
     let ui_state = UiState::Unselected;
 
-    let mut state = State(GameState::SetupTransition, ui_state);
+    // let mut state = State(GameState::SetupTransition, ui_state);
+    let mut title_state = mission_select::State::new(title);
+    let mut state = State(GameState::MissionSelect(title_state), ui_state);
 
     let (tx, rx) = channel();
     let guard = unsafe {
