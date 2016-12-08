@@ -4,6 +4,7 @@ extern crate time;
 extern crate voodoo;
 
 mod ai;
+mod data;
 mod game_state;
 mod info_view;
 mod map_view;
@@ -27,29 +28,6 @@ use map_view::MapView;
 use level::Level;
 use player::Player;
 
-const LEVEL_DESCR: [&'static str; 20] = [
-    "                                                          ",
-    "                                                          ",
-    "          .........................                       ",
-    "          .........................                       ",
-    "          ..                     ..                       ",
-    "          ..                     ..                       ",
-    "          ..                     ..                       ",
-    "          ..                     ..                       ",
-    "   o................             .....                    ",
-    "   o................             .....                    ",
-    "          ..                     ..                       ",
-    "          ..                     ..                       ",
-    "          ..                     ..                       ",
-    "          ..                     ..                       ",
-    "          ..                     ..                       ",
-    "          .........................                       ",
-    "          .........................                       ",
-    "                                                          ",
-    "                                                          ",
-    "                                                          ",
-];
-
 const MS: u64 = 1_000_000;
 const TICK_TIME: u64 = 250;
 
@@ -63,8 +41,7 @@ fn main() {
     use voodoo::terminal::{Mode, Terminal};
     use voodoo::window::{Window};
 
-    let mut level = Level::new(&LEVEL_DESCR);
-
+    let mut level = data::load_level(0);
     let mut terminal = Terminal::new();
     terminal.cursor(Mode::Disabled);
     terminal.clear_color(ColorValue::Black);

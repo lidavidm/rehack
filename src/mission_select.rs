@@ -1,11 +1,12 @@
-use game_state::{self, UiEvent, UiState, ModelView};
+use voodoo::window::{Point, Window};
+
+use data;
+use game_state::{self, UiState, ModelView};
 use info_view::{ChoiceList, InfoView};
 use map_view::MapView;
 use level::{CellContents, Level};
 use player::Player;
 use program::{Ability, Team};
-
-use voodoo::window::{Point, Window};
 
 const TITLE: [&'static str; 6] = [
     "██████╗ ███████╗    ██╗██╗  ██╗ █████╗  ██████╗██╗  ██╗",
@@ -15,6 +16,11 @@ const TITLE: [&'static str; 6] = [
     "█║  ██║███████╗██╔╝   ██║  ██║██║  ██║╚██████╗██║  ██╗",
     "╚═╝  ╚═╝╚══════╝╚═╝    ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝",
 ];
+
+pub enum UiEvent {
+    KeyPressed,
+    Tick,
+}
 
 pub enum Transition {
     Ui(UiState),
@@ -40,14 +46,11 @@ impl ::std::fmt::Debug for State {
 }
 
 pub fn next(mission_state: &mut State, ui_state: UiState, event: UiEvent, mv: &mut ModelView) -> Transition {
-    use game_state::UiEvent::*;
-    use game_state::UiState::*;
-
-    let result = match (ui_state, event) {
-        _ => Unselected,
-    };
-
-    Transition::Ui(result)
+    use self::UiEvent::*;
+    match event {
+        KeyPressed => Transition::Level(data::load_level(0)),
+        Tick => Transition::Ui(UiState::Unselected),
+    }
 }
 
 pub fn display(mission_state: &mut State, stdout: &mut ::std::io::Stdout, mv: &mut ModelView) {

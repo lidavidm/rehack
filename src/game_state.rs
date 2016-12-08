@@ -1,6 +1,8 @@
 use termion;
 use termion::event::{Key, Event, MouseEvent};
 
+use voodoo;
+use voodoo::color::{ColorValue};
 use voodoo::window::{Point};
 
 use ai;
@@ -97,14 +99,17 @@ impl State {
                     },
                     _ => Self::next_player_turn(ui, event, mv)
                 },
-                State(MissionSelect(ms), ui) => Self::next_mission_turn(ms, ui, event, mv),
+                State(MissionSelect(_), _) => self,
                 State(SetupTransition, _) |
                 State(AITurnTransition, _) | State(PlayerTurnTransition, _) |
                 State(AITurn, _) | State(Quit, _) => self,
             }
         }
         else {
-            self
+            match (self, event) {
+                (State(MissionSelect(ms), ui), Event::Key(_)) => Self::next_mission_turn(ms, ui, mission_select::UiEvent::KeyPressed, mv),
+                (s, _) => s
+            }
         }
     }
 
@@ -114,7 +119,7 @@ impl State {
         match self {
             State(Setup, ui) => Self::next_setup_turn(ui, UiEvent::Tick, mv),
             State(PlayerTurn, ui) => Self::next_player_turn(ui, UiEvent::Tick, mv),
-            State(MissionSelect(ms), ui) => Self::next_mission_turn(ms, ui, UiEvent::Tick, mv),
+            State(MissionSelect(ms), ui) => Self::next_mission_turn(ms, ui, mission_select::UiEvent::Tick, mv),
             State(AITurnTransition, _) => {
                 begin_turn(Team::Enemy, mv);
                 State(AITurn, UiState::Unselected)
@@ -201,12 +206,13 @@ impl State {
         }
     }
 
-    pub fn next_mission_turn(mut mission_state: mission_select::State, ui_state: UiState, event: UiEvent, mv: &mut ModelView) -> State {
+    pub fn next_mission_turn(mut mission_state: mission_select::State, ui_state: UiState, event: mission_select::UiEvent, mv: &mut ModelView) -> State {
         use self::GameState::*;
 
         match mission_select::next(&mut mission_state, ui_state, event, mv) {
             mission_select::Transition::Ui(ui) => State(MissionSelect(mission_state), ui),
             mission_select::Transition::Level(level) => {
+                voodoo::terminal::clear_color(ColorValue::Black);
                 mv.level = level;
                 State(SetupTransition, UiState::Unselected)
             }
