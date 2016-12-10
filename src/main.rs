@@ -48,6 +48,8 @@ fn main() {
 
     stdout.flush().unwrap();
 
+    let mut compositor = voodoo::compositor::Compositor::new(80, 24);
+
     let info = Window::new(Point::new(0, 0), 20, 24);
     let map = Window::new(Point::new(20, 0), 60, 24);
     let title = Window::new(Point::new(0, 0), 80, 24);
@@ -110,7 +112,8 @@ fn main() {
             dt -= TICK_TIME * MS;
         }
 
-        state.display(stdout, &mut mv);
+        state.display(&mut compositor, &mut mv);
+        compositor.refresh(stdout);
         t = now;
 
         thread::sleep(Duration::from_millis((TICK_TIME - dt / MS) / 2));

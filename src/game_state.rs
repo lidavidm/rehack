@@ -80,18 +80,16 @@ impl GameState {
     }
 
     pub fn next(self, event: termion::event::Event, mv: &mut ModelView) -> GameState {
-        use self::GameState::*;
-
         if let Some(event) = self.translate_event(event, mv) {
             match self {
                 GameState::Setup(ui) => Self::next_setup_turn(ui, event, mv),
                 GameState::PlayerTurn(ui) => match event {
                     UiEvent::EndTurn => {
-                        if mv.level.check_victory().is_some() {
-                            GameState::Quit
-                        }
-                        else {
-                            GameState::AITurnTransition
+                        match mv.level.check_victory() {
+                            // TODO: transition to victory/defeat screens
+                            Some(Team::Player) => GameState::Quit,
+                            Some(Team::Enemy) => GameState::Quit,
+                            None => GameState::AITurnTransition
                         }
                     },
                     _ => Self::next_player_turn(ui, event, mv)
@@ -111,8 +109,6 @@ impl GameState {
     }
 
     pub fn tick(self, mv: &mut ModelView) -> GameState {
-        use self::GameState::*;
-
         match self {
             GameState::Setup(ui) => Self::next_setup_turn(ui, UiEvent::Tick, mv),
             GameState::PlayerTurn(ui) => Self::next_player_turn(ui, UiEvent::Tick, mv),
@@ -177,17 +173,17 @@ impl GameState {
         }
     }
 
-    pub fn display(&mut self, stdout: &mut ::std::io::Stdout, mv: &mut ModelView) {
+    pub fn display(&mut self, compositor: &mut voodoo::compositor::Compositor, mv: &mut ModelView) {
         use self::GameState::*;
 
         match self {
             &mut MissionSelect(ref mut state) => {
-                mission_select::display(state, stdout, mv);
+                mission_select::display(state, compositor, mv);
             }
             _ => {
-                mv.info.refresh(stdout);
+                mv.info.refresh(compositor);
                 mv.map.display(&mv.level);
-                mv.map.refresh(stdout);
+                mv.map.refresh(compositor);
             }
         }
     }
@@ -209,7 +205,6 @@ impl GameState {
         match mission_select::next(&mut mission_state, event, mv) {
             mission_select::Transition::Ui(ui) => GameState::MissionSelect(mission_state),
             mission_select::Transition::Level(level) => {
-                voodoo::terminal::clear_color(ColorValue::Black);
                 mv.level = level;
                 GameState::SetupTransition
             }

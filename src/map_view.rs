@@ -75,8 +75,8 @@ impl MapView {
         }
     }
 
-    pub fn refresh(&mut self, stdout: &mut ::std::io::Stdout) {
-        self.window.refresh(stdout);
+    pub fn refresh(&mut self, compositor: &mut ::voodoo::compositor::Compositor) {
+        self.window.refresh(compositor);
     }
 
     pub fn highlight(&mut self, program: ProgramRef, level: &Level) {

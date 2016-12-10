@@ -53,10 +53,10 @@ pub fn next(mission_state: &mut State, event: UiEvent, mv: &mut ModelView) -> Tr
     }
 }
 
-pub fn display(mission_state: &mut State, stdout: &mut ::std::io::Stdout, mv: &mut ModelView) {
+pub fn display(mission_state: &mut State, compositor: &mut ::voodoo::compositor::Compositor, mv: &mut ModelView) {
     for (offset, line) in TITLE.iter().enumerate() {
         mission_state.window.print_at(Point::new(13, 6 + offset as u16), *line);
     }
     mission_state.window.print_at(Point::new(30, 14), "PRESS ANY KEY TO BEGIN");
-    mission_state.window.refresh(stdout);
+    mission_state.window.refresh(compositor);
 }

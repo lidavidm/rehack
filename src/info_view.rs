@@ -100,8 +100,8 @@ impl InfoView {
         self.window.position.from_global_frame(p)
     }
 
-    pub fn refresh(&mut self, stdout: &mut ::std::io::Stdout) {
-        self.window.refresh(stdout);
+    pub fn refresh(&mut self, compositor: &mut ::voodoo::compositor::Compositor) {
+        self.window.refresh(compositor);
     }
 
     pub fn display_end_turn(&mut self) {
