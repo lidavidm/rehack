@@ -2,7 +2,6 @@ use termion;
 use termion::event::{Key, Event, MouseEvent};
 
 use voodoo;
-use voodoo::color::{ColorValue};
 use voodoo::window::{Point};
 
 use ai;
@@ -54,8 +53,6 @@ pub struct ModelView {
 
 impl GameState {
     pub fn translate_event(&self, event: Event, mv: &mut ModelView) -> Option<UiEvent> {
-        use self::GameState::*;
-
         match (self, event) {
             (_, Event::Key(Key::Char('q'))) => Some(UiEvent::Quit),
             (&GameState::PlayerTurn(_), Event::Mouse(MouseEvent::Press(_, x, y))) |
@@ -189,8 +186,6 @@ impl GameState {
     }
 
     pub fn next_player_turn(ui_state: UiState, event: UiEvent, mv: &mut ModelView) -> GameState {
-        use self::GameState::*;
-
         match event {
             UiEvent::ClickMap(_) | UiEvent::ClickInfo(_) | UiEvent::Tick => {
                 GameState::PlayerTurn(player_turn::next(ui_state, event, mv))
@@ -200,10 +195,8 @@ impl GameState {
     }
 
     pub fn next_mission_turn(mut mission_state: mission_select::State, event: mission_select::UiEvent, mv: &mut ModelView) -> GameState {
-        use self::GameState::*;
-
         match mission_select::next(&mut mission_state, event, mv) {
-            mission_select::Transition::Ui(ui) => GameState::MissionSelect(mission_state),
+            mission_select::Transition::Ui(_) => GameState::MissionSelect(mission_state),
             mission_select::Transition::Level(level) => {
                 mv.level = level;
                 GameState::SetupTransition
@@ -212,8 +205,6 @@ impl GameState {
     }
 
     pub fn next_setup_turn(ui_state: UiState, event: UiEvent, mv: &mut ModelView) -> GameState {
-        use self::GameState::*;
-
         match event {
             UiEvent::ClickMap(_) | UiEvent::ClickInfo(_) | UiEvent::Tick => {
                 GameState::Setup(player_turn::next_setup(ui_state, event, mv))

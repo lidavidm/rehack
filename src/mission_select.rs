@@ -1,12 +1,8 @@
 use voodoo::window::{Point, Window};
 
 use data;
-use game_state::{self, UiState, ModelView};
-use info_view::{ChoiceList, InfoView};
-use map_view::MapView;
-use level::{CellContents, Level};
-use player::Player;
-use program::{Ability, Team};
+use game_state::{UiState, ModelView};
+use level::Level;
 
 const TITLE: [&'static str; 6] = [
     "██████╗ ███████╗    ██╗██╗  ██╗ █████╗  ██████╗██╗  ██╗",
@@ -45,7 +41,7 @@ impl ::std::fmt::Debug for State {
     }
 }
 
-pub fn next(mission_state: &mut State, event: UiEvent, mv: &mut ModelView) -> Transition {
+pub fn next(_state: &mut State, event: UiEvent, _mv: &mut ModelView) -> Transition {
     use self::UiEvent::*;
     match event {
         KeyPressed => Transition::Level(data::load_level(0)),
@@ -53,7 +49,7 @@ pub fn next(mission_state: &mut State, event: UiEvent, mv: &mut ModelView) -> Tr
     }
 }
 
-pub fn display(mission_state: &mut State, compositor: &mut ::voodoo::compositor::Compositor, mv: &mut ModelView) {
+pub fn display(mission_state: &mut State, compositor: &mut ::voodoo::compositor::Compositor, _mv: &mut ModelView) {
     for (offset, line) in TITLE.iter().enumerate() {
         mission_state.window.print_at(Point::new(13, 6 + offset as u16), *line);
     }
