@@ -25,7 +25,6 @@ use voodoo::window::{Point};
 
 use info_view::InfoView;
 use map_view::MapView;
-use level::Level;
 use player::Player;
 
 const MS: u64 = 1_000_000;
@@ -36,12 +35,12 @@ fn main() {
     use std::thread;
     use std::time::Duration;
 
-    use game_state::{ModelView, GameState, State, UiState};
+    use game_state::{ModelView, GameState};
 
     use voodoo::terminal::{Mode, Terminal};
     use voodoo::window::{Window};
 
-    let mut level = data::load_level(0);
+    let level = data::load_level(0);
     let mut terminal = Terminal::new();
     terminal.cursor(Mode::Disabled);
     terminal.clear_color(ColorValue::Black);
@@ -53,8 +52,8 @@ fn main() {
     let map = Window::new(Point::new(20, 0), 60, 24);
     let title = Window::new(Point::new(0, 0), 80, 24);
 
-    let mut info_view = InfoView::new(info);
-    let mut map_view = MapView::new(map);
+    let info_view = InfoView::new(info);
+    let map_view = MapView::new(map);
     let player = Player::new("David");
 
     let mut mv = ModelView {
@@ -64,11 +63,9 @@ fn main() {
         program_list: info_view::ChoiceList::new(4),
         level: level,
     };
-    let ui_state = UiState::Unselected;
 
-    // let mut state = State(GameState::SetupTransition, ui_state);
-    let mut title_state = mission_select::State::new(title);
-    let mut state = State(GameState::MissionSelect(title_state), ui_state);
+    let title_state = mission_select::State::new(title);
+    let mut state = GameState::MissionSelect(title_state);
 
     let (tx, rx) = channel();
     let guard = unsafe {
@@ -93,7 +90,7 @@ fn main() {
             match msg {
                 Ok(evt) => {
                     state = state.next(evt, &mut mv);
-                    if let State(GameState::Quit, _) = state {
+                    if let GameState::Quit = state {
                         break 'main;
                     }
                 },
@@ -107,7 +104,7 @@ fn main() {
 
         while dt >= TICK_TIME * MS {
             state = state.tick(&mut mv);
-            if let State(GameState::Quit, _) = state {
+            if let GameState::Quit = state {
                 break 'main;
             }
             dt -= TICK_TIME * MS;

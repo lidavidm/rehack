@@ -45,7 +45,7 @@ impl ::std::fmt::Debug for State {
     }
 }
 
-pub fn next(mission_state: &mut State, ui_state: UiState, event: UiEvent, mv: &mut ModelView) -> Transition {
+pub fn next(mission_state: &mut State, event: UiEvent, mv: &mut ModelView) -> Transition {
     use self::UiEvent::*;
     match event {
         KeyPressed => Transition::Level(data::load_level(0)),
