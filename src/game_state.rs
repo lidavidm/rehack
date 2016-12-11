@@ -6,6 +6,7 @@ use voodoo::window::{Point};
 
 use ai;
 use info_view::{self, InfoView};
+use level_transition;
 use map_view::MapView;
 use mission_select;
 use level::Level;
@@ -41,6 +42,7 @@ pub enum GameState {
     PlayerTurnTransition,
     Quit,
     MissionSelect(mission_select::State),
+    LevelTransition(level_transition::State),
 }
 
 pub struct ModelView {
@@ -84,14 +86,13 @@ impl GameState {
                     UiEvent::EndTurn => {
                         match mv.level.check_victory() {
                             // TODO: transition to victory/defeat screens
-                            Some(Team::Player) => GameState::Quit,
-                            Some(Team::Enemy) => GameState::Quit,
+                            Some(team) => GameState::LevelTransition(level_transition::State::new(team)),
                             None => GameState::AITurnTransition
                         }
                     },
                     _ => Self::next_player_turn(ui, event, mv)
                 },
-                GameState::MissionSelect(_) => self,
+                GameState::MissionSelect(_) | GameState::LevelTransition(_) => self,
                 GameState::SetupTransition |
                 GameState::AITurnTransition | GameState::PlayerTurnTransition |
                 GameState::AITurn(_) | GameState::Quit => self,
@@ -100,6 +101,7 @@ impl GameState {
         else {
             match (self, event) {
                 (GameState::MissionSelect(ms), Event::Key(_)) => Self::next_mission_turn(ms, mission_select::UiEvent::KeyPressed, mv),
+                (GameState::LevelTransition(lt), Event::Key(_)) => Self::next_transition_turn(lt, level_transition::UiEvent::KeyPressed, mv),
                 (s, _) => s
             }
         }
@@ -110,6 +112,7 @@ impl GameState {
             GameState::Setup(ui) => Self::next_setup_turn(ui, UiEvent::Tick, mv),
             GameState::PlayerTurn(ui) => Self::next_player_turn(ui, UiEvent::Tick, mv),
             GameState::MissionSelect(ms) => Self::next_mission_turn(ms, mission_select::UiEvent::Tick, mv),
+            GameState::LevelTransition(lt) => Self::next_transition_turn(lt, level_transition::UiEvent::Tick, mv),
             GameState::AITurnTransition => {
                 begin_turn(Team::Enemy, mv);
                 GameState::AITurn(UiState::Unselected)
@@ -200,6 +203,18 @@ impl GameState {
             mission_select::Transition::Level(level) => {
                 mv.level = level;
                 GameState::SetupTransition
+            }
+        }
+    }
+
+    pub fn next_transition_turn(mut state: level_transition::State, event: level_transition::UiEvent, mv: &mut ModelView) -> GameState {
+        match level_transition::next(&mut state, event, mv) {
+            Some(level) => {
+                mv.level = level;
+                GameState::SetupTransition
+            },
+            None => {
+                GameState::LevelTransition(state)
             }
         }
     }

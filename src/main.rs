@@ -7,6 +7,7 @@ mod ai;
 mod data;
 mod game_state;
 mod info_view;
+mod level_transition;
 mod map_view;
 mod mission_select;
 mod level;
