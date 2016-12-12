@@ -1,8 +1,6 @@
 use voodoo::window::{Point, Window};
 
-use data;
 use game_state::{UiState, ModelView};
-use level::Level;
 
 const TITLE: [&'static str; 6] = [
     "██████╗ ███████╗    ██╗██╗  ██╗ █████╗  ██████╗██╗  ██╗",
@@ -20,7 +18,7 @@ pub enum UiEvent {
 
 pub enum Transition {
     Ui(UiState),
-    Level(Level),
+    Level(usize),
 }
 
 pub struct State {
@@ -44,7 +42,7 @@ impl ::std::fmt::Debug for State {
 pub fn next(_state: &mut State, event: UiEvent, _mv: &mut ModelView) -> Transition {
     use self::UiEvent::*;
     match event {
-        KeyPressed => Transition::Level(data::load_level(0)),
+        KeyPressed => Transition::Level(0),
         Tick => Transition::Ui(UiState::Unselected),
     }
 }

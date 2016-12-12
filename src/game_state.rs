@@ -5,6 +5,7 @@ use voodoo;
 use voodoo::window::{Point};
 
 use ai;
+use data;
 use info_view::{self, InfoView};
 use level_transition;
 use map_view::MapView;
@@ -46,6 +47,7 @@ pub enum GameState {
 }
 
 pub struct ModelView {
+    pub level_index: usize,
     pub info: InfoView,
     pub map: MapView,
     pub player: Player,
@@ -85,8 +87,7 @@ impl GameState {
                 GameState::PlayerTurn(ui) => match event {
                     UiEvent::EndTurn => {
                         match mv.level.check_victory() {
-                            // TODO: transition to victory/defeat screens
-                            Some(team) => GameState::LevelTransition(level_transition::State::new(team)),
+                            Some(team) => GameState::LevelTransition(level_transition::State::new(mv.level_index, team)),
                             None => GameState::AITurnTransition
                         }
                     },
@@ -118,12 +119,12 @@ impl GameState {
                 GameState::AITurn(UiState::Unselected)
             }
             GameState::PlayerTurnTransition => {
-                if mv.level.check_victory().is_some() {
-                    GameState::Quit
-                }
-                else {
-                    begin_turn(Team::Player, mv);
-                    GameState::PlayerTurn(UiState::Unselected)
+                match mv.level.check_victory() {
+                    Some(team) => GameState::LevelTransition(level_transition::State::new(mv.level_index, team)),
+                    None => {
+                        begin_turn(Team::Player, mv);
+                        GameState::PlayerTurn(UiState::Unselected)
+                    }
                 }
             }
             GameState::AITurn(UiState::Animating) => {
@@ -180,6 +181,9 @@ impl GameState {
             &mut MissionSelect(ref mut state) => {
                 mission_select::display(state, compositor, mv);
             }
+            &mut LevelTransition(ref mut state) => {
+                level_transition::display(state, compositor, mv);
+            }
             _ => {
                 mv.info.refresh(compositor);
                 mv.map.display(&mv.level);
@@ -200,8 +204,9 @@ impl GameState {
     pub fn next_mission_turn(mut mission_state: mission_select::State, event: mission_select::UiEvent, mv: &mut ModelView) -> GameState {
         match mission_select::next(&mut mission_state, event, mv) {
             mission_select::Transition::Ui(_) => GameState::MissionSelect(mission_state),
-            mission_select::Transition::Level(level) => {
-                mv.level = level;
+            mission_select::Transition::Level(index) => {
+                mv.level_index = index;
+                mv.level = data::load_level(index);
                 GameState::SetupTransition
             }
         }
@@ -209,8 +214,9 @@ impl GameState {
 
     pub fn next_transition_turn(mut state: level_transition::State, event: level_transition::UiEvent, mv: &mut ModelView) -> GameState {
         match level_transition::next(&mut state, event, mv) {
-            Some(level) => {
-                mv.level = level;
+            Some(index) => {
+                mv.level_index = index;
+                mv.level = data::load_level(index);
                 GameState::SetupTransition
             },
             None => {

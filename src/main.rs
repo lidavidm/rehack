@@ -60,6 +60,7 @@ fn main() {
     let player = Player::new("David");
 
     let mut mv = ModelView {
+        level_index: 0,
         info: info_view,
         map: map_view,
         player: player,
