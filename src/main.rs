@@ -57,7 +57,14 @@ fn main() {
 
     let info_view = InfoView::new(info);
     let map_view = MapView::new(map);
-    let player = Player::new("David");
+    let mut player = Player::new("David");
+
+    let mut prog1 = program::Program::new(program::Team::Player, Point::new(0, 0), "Hack 1");
+    prog1.abilities.push(("Bitblast".to_owned(), program::Ability::Destroy { damage: 2, range: 1 }));
+    let mut prog2 = prog1.clone();
+    prog2.name = "Hack 2".to_owned();
+    player.programs.push(prog1);
+    player.programs.push(prog2);
 
     let mut mv = ModelView {
         level_index: 0,

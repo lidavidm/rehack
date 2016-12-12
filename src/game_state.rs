@@ -155,13 +155,6 @@ impl GameState {
                 mv.level.add_program(enemy1);
                 mv.level.add_program(enemy2);
 
-                let mut prog1 = Program::new(Team::Player, Point::new(0, 0), "Hack 1");
-                prog1.abilities.push(("Bitblast".to_owned(), Ability::Destroy { damage: 2, range: 1 }));
-                let mut prog2 = prog1.clone();
-                prog2.name = "Hack 2".to_owned();
-                mv.player.programs.push(prog1);
-                mv.player.programs.push(prog2);
-
                 mv.info.primary_action = ">Launch Intrusion<".to_owned();
                 mv.info.clear();
                 mv.map.display(&mv.level);
