@@ -147,17 +147,10 @@ impl GameState {
                 }
             }
             GameState::SetupTransition => {
-                let mut enemy1 = Program::new(Team::Enemy, Point::new(7, 10), "Hack");
-                enemy1.abilities.push(("Bitblast".to_owned(), Ability::Destroy { damage: 2, range: 1 }));
-                let mut enemy2 = enemy1.clone();
-                enemy2.position = Point::new(7, 9);
-
-                mv.level.add_program(enemy1);
-                mv.level.add_program(enemy2);
-
                 mv.info.primary_action = ">Launch Intrusion<".to_owned();
                 mv.info.clear();
                 mv.map.display(&mv.level);
+                mv.program_list.choices().clear();
                 mv.program_list.choices().extend(mv.player.programs.iter().map(|x| {
                     (x.name.to_owned(), x.clone())
                 }));

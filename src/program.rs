@@ -181,3 +181,49 @@ impl Program {
         self.position == point
     }
 }
+
+pub struct ProgramBuilder {
+    name: String,
+    abilities: Vec<(String, Ability)>,
+    max_tail: usize,
+    max_moves: usize,
+}
+
+impl ProgramBuilder {
+    pub fn new<S: Into<String>>(name: S) -> ProgramBuilder {
+        ProgramBuilder {
+            name: name.into(),
+            abilities: Vec::new(),
+            max_tail: 1,
+            max_moves: 1,
+        }
+    }
+
+    pub fn max_tail(mut self, size: usize) -> ProgramBuilder {
+        self.max_tail = size;
+        self
+    }
+
+    pub fn max_moves(mut self, moves: usize) -> ProgramBuilder {
+        self.max_moves = moves;
+        self
+    }
+
+    pub fn ability<S: Into<String>>(mut self, name: S, ability: Ability) -> ProgramBuilder {
+        self.abilities.push((name.into(), ability));
+        self
+    }
+
+    pub fn name<S: Into<String>>(mut self, name: S) -> ProgramBuilder {
+        self.name = name.into();
+        self
+    }
+
+    pub fn instance(&self, team: Team) -> Program {
+        let mut p = Program::new(team, Point::new(0, 0), &self.name);
+        p.max_tail = self.max_tail;
+        p.max_moves = self.max_moves;
+        p.abilities.extend_from_slice(&self.abilities);
+        p
+    }
+}

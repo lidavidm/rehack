@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate lazy_static;
 extern crate termion;
 extern crate thread_scoped;
 extern crate time;
@@ -59,12 +61,18 @@ fn main() {
     let map_view = MapView::new(map);
     let mut player = Player::new("David");
 
-    let mut prog1 = program::Program::new(program::Team::Player, Point::new(0, 0), "Hack 1");
-    prog1.abilities.push(("Bitblast".to_owned(), program::Ability::Destroy { damage: 2, range: 1 }));
-    let mut prog2 = prog1.clone();
-    prog2.name = "Hack 2".to_owned();
-    player.programs.push(prog1);
-    player.programs.push(prog2);
+    let prog_builder = program::ProgramBuilder::new("Hack 1")
+        .ability("Bitblast", program::Ability::Destroy { damage: 2, range: 1 })
+        .max_tail(5)
+        .max_moves(4);
+
+    player.programs.push(prog_builder.instance(program::Team::Player));
+    player.programs.push(prog_builder.name("Hack 2").instance(program::Team::Player));
+    player.programs.push(program::ProgramBuilder::new("Sprinter")
+                         .max_tail(2)
+                         .max_moves(10)
+                         .ability("Overflow", program::Ability::Destroy { damage: 1, range: 3 })
+                         .instance(program::Team::Player));
 
     let mut mv = ModelView {
         level_index: 0,

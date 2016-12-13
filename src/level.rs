@@ -22,7 +22,12 @@ impl Level {
     pub fn new(description: &[&str; 20]) -> Level {
         let mut layout = Vec::new();
         for s in description.iter() {
-            layout.push(s.chars().collect());
+            layout.push(s.chars().map(|c| {
+                match c {
+                    'a'...'n' | 'p'...'z' | 'A'...'Z' => '.',
+                    _ => c,
+                }
+            }).collect());
         }
         Level {
             layout: layout,
