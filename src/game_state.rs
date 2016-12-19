@@ -147,13 +147,16 @@ impl GameState {
                 }
             }
             GameState::SetupTransition => {
-                mv.info.primary_action = ">Launch Intrusion<".to_owned();
+                mv.map.reset();
                 mv.info.clear();
+                mv.info.primary_action = ">Launch Intrusion<".to_owned();
+                mv.info.display_end_turn();
                 mv.map.display(&mv.level);
                 mv.program_list.choices().clear();
                 mv.program_list.choices().extend(mv.player.programs.iter().map(|x| {
                     (x.name.to_owned(), x.clone())
                 }));
+                begin_turn(Team::Player, mv);
                 GameState::Setup(UiState::Unselected)
             }
             GameState::Quit => self,
@@ -194,7 +197,6 @@ impl GameState {
                 if let Some(level) = data::load_level(index) {
                     mv.level_index = index;
                     mv.level = level;
-                    mv.map.reset();
                     GameState::SetupTransition
                 }
                 else {
@@ -210,7 +212,6 @@ impl GameState {
                 if let Some(level) = data::load_level(index) {
                     mv.level_index = index;
                     mv.level = level;
-                    mv.map.reset();
                     GameState::SetupTransition
                 }
                 else {
@@ -231,6 +232,7 @@ impl GameState {
             UiEvent::EndTurn => {
                 // TODO: reset
                 mv.info.primary_action = ">    End Turn    <".to_owned();
+                mv.info.display_end_turn();
                 GameState::PlayerTurnTransition
             }
             UiEvent::Quit => unreachable!(),
