@@ -139,7 +139,9 @@ impl Program {
         }
     }
 
-    pub fn display_color(&self, color: ColorValue, window: &mut Window) {
+    pub fn display_color(&self, color: ColorValue) -> Vec<(Point, TermCell)> {
+        let mut result = vec![];
+
         let mut prev: Option<Point> = None;
         let mut cells = self.tail.to_vec();
         cells.push(self.position);
@@ -163,13 +165,15 @@ impl Program {
                 _ => '+',
             }.into();
             c.bg = Some(color);
-            window.put_at(cur, c);
+            result.push((cur, c));
             prev = Some(cur);
         }
 
         let mut tc: TermCell = '◘'.into();
         tc.bg = Some(color);
-        window.put_at(self.position, tc);
+        result.push((self.position, tc));
+
+        result
     }
 
     pub fn intersects(&self, point: Point) -> bool {

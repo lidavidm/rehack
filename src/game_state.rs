@@ -61,7 +61,7 @@ impl GameState {
             (_, Event::Key(Key::Char('q'))) => Some(UiEvent::Quit),
             (&GameState::PlayerTurn(_), Event::Mouse(MouseEvent::Press(_, x, y))) |
             (&GameState::Setup(_), Event::Mouse(MouseEvent::Press(_, x, y))) => {
-                if let Some(p) = mv.map.from_global_frame(Point::new(x, y)) {
+                if let Some(p) = mv.map.from_global_frame(Point::new(x - 1, y - 1)) {
                     Some(UiEvent::ClickMap(p))
                 }
                 else if let Some(p) = mv.info.from_global_frame(Point::new(x, y)) {

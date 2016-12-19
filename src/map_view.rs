@@ -45,18 +45,9 @@ impl MapView {
 
     pub fn display(&mut self, level: &Level) {
         for (y, line) in level.layout.iter().enumerate() {
-            if y == 0 {
-                // XXX: temporary hack - need to adjust rendering
-                // bounds and coordinate conversions
-                continue;
-            }
-            let y = y + 1;
+            let y = y + 2;
             for (x, tile) in line.iter().enumerate() {
-                if x == 0 {
-                    // XXX: see above
-                    continue;
-                }
-                let x = x + 1;
+                let x = x + 2;
                 self.window.put_at(Point::new(x as u16, y as u16), match Level::convert(*tile) {
                     Some(c) => c,
                     None => ' '.into(),
@@ -69,19 +60,23 @@ impl MapView {
                 Team::Player => ColorValue::Green,
                 Team::Enemy => ColorValue::Red,
             };
-            program.borrow().display_color(color, &mut self.window);
+            for (p, tc) in program.borrow().display_color(color) {
+                self.window.put_at(Point::new(p.x + 1, p.y + 1), tc);
+            }
         }
 
         if let Some(ref program) = self.highlight {
-            program.borrow().display_color(ColorValue::Blue, &mut self.window);
+            for (p, tc) in program.borrow().display_color(ColorValue::Blue) {
+                self.window.put_at(Point::new(p.x + 1, p.y + 1), tc);
+            }
         }
 
         for &(p, c) in self.overlay.iter() {
-            self.window.put_at(p, c);
+            self.window.put_at(Point::new(p.x + 1, p.y + 1), c);
         }
 
         for &(p, c) in self.named_overlay.values() {
-            self.window.put_at(p, c);
+            self.window.put_at(Point::new(p.x + 1, p.y + 1), c);
         }
 
         // TODO:
