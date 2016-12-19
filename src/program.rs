@@ -169,7 +169,7 @@ impl Program {
             prev = Some(cur);
         }
 
-        let mut tc: TermCell = '◘'.into();
+        let mut tc: TermCell = self.name.chars().next().unwrap().into();
         tc.bg = Some(color);
         result.push((self.position, tc));
 

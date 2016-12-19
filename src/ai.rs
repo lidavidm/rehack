@@ -70,7 +70,7 @@ pub fn ai_tick(level: &Level, map: &mut MapView) -> AIState {
         if program.borrow().name == "Patrol" {
             patrol_tick(program.clone(), level, map, &mut choices);
         }
-        else {
+        else if { program.borrow().can_move() } {
             let east = Point::new(x + 1, y);
             if level.passable(east) {
                 choices.push((50, AIChoice::Move(east)));

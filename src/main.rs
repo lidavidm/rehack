@@ -62,7 +62,7 @@ fn main() {
     let mut player = Player::new("David");
 
     let prog_builder = program::ProgramBuilder::new("Hack 1")
-        .ability("Bitblast", program::Ability::Destroy { damage: 2, range: 1 })
+        .ability("Bitblast", program::Ability::Destroy { damage: 3, range: 1 })
         .max_tail(5)
         .max_moves(4);
 
@@ -72,6 +72,11 @@ fn main() {
                          .max_tail(2)
                          .max_moves(10)
                          .ability("Overflow", program::Ability::Destroy { damage: 1, range: 3 })
+                         .instance(program::Team::Player));
+    player.programs.push(program::ProgramBuilder::new("Cannon")
+                         .max_tail(1)
+                         .max_moves(4)
+                         .ability("Shred", program::Ability::Destroy { damage: 6, range: 5 })
                          .instance(program::Team::Player));
 
     let mut mv = ModelView {
