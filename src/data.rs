@@ -9,7 +9,7 @@ const LEVELS: [[&'static str; 20]; 2] = [
     [
         "                                                          ",
         "                                                          ",
-        "          .........................                       ",
+        "          ......................p..                       ",
         "          .........................                       ",
         "          ..                     ..                       ",
         "          ..                     ..                       ",
@@ -23,7 +23,7 @@ const LEVELS: [[&'static str; 20]; 2] = [
         "          ..                     ..                       ",
         "          ..                     ..                       ",
         "          .........................                       ",
-        "          .........................                       ",
+        "          ......................p..                       ",
         "                                                          ",
         "                                                          ",
         "                                                          ",
@@ -61,6 +61,12 @@ lazy_static! {
                  .ability("Overflow", Ability::Destroy { damage: 1, range: 3 })
                  .max_tail(2)
                  .max_moves(10));
+
+        m.insert("p".to_owned(),
+                 ProgramBuilder::new("Patrol")
+                 .ability("Delete", Ability::Destroy { damage: 4, range: 1 })
+                 .max_tail(4)
+                 .max_moves(2));
 
         m
     };

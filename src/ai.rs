@@ -19,7 +19,25 @@ pub enum AIState {
     Done,
 }
 
-pub fn ai_tick(level: &Level, _map: &mut MapView) -> AIState {
+fn patrol_tick(program: ProgramRef, level: &Level, _map: &mut MapView, choices: &mut Vec<(i32, AIChoice)>) {
+    let Point { x, y } = { program.borrow().position };
+
+    let north = Point::new(x, y - 1);
+    if level.passable(north) {
+        choices.push((70, AIChoice::Move(north)));
+    }
+    let south = Point::new(x, y + 1);
+    if level.passable(south) {
+        choices.push((70, AIChoice::Move(south)));
+    }
+
+    let west = Point::new(x - 1, y);
+    if level.passable(west) {
+        choices.push((50, AIChoice::Move(west)));
+    }
+}
+
+pub fn ai_tick(level: &Level, map: &mut MapView) -> AIState {
     let mut result = AIState::Done;
     for program in level.programs.iter() {
         if program.borrow().team != Team::Enemy {
@@ -49,21 +67,26 @@ pub fn ai_tick(level: &Level, _map: &mut MapView) -> AIState {
             }
         }
 
-        let east = Point::new(x + 1, y);
-        if level.passable(east) {
-            choices.push((50, AIChoice::Move(east)));
+        if program.borrow().name == "Patrol" {
+            patrol_tick(program.clone(), level, map, &mut choices);
         }
-        let west = Point::new(x - 1, y);
-        if level.passable(west) {
-            choices.push((50, AIChoice::Move(west)));
-        }
-        let north = Point::new(x, y - 1);
-        if level.passable(north) {
-            choices.push((50, AIChoice::Move(north)));
-        }
-        let south = Point::new(x, y + 1);
-        if level.passable(south) {
-            choices.push((50, AIChoice::Move(south)));
+        else {
+            let east = Point::new(x + 1, y);
+            if level.passable(east) {
+                choices.push((50, AIChoice::Move(east)));
+            }
+            let west = Point::new(x - 1, y);
+            if level.passable(west) {
+                choices.push((50, AIChoice::Move(west)));
+            }
+            let north = Point::new(x, y - 1);
+            if level.passable(north) {
+                choices.push((50, AIChoice::Move(north)));
+            }
+            let south = Point::new(x, y + 1);
+            if level.passable(south) {
+                choices.push((50, AIChoice::Move(south)));
+            }
         }
 
         choices.sort_by(|&(s1, _), &(s2, _)| { s2.cmp(&s1) });
