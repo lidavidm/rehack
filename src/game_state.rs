@@ -193,6 +193,7 @@ impl GameState {
             mission_select::Transition::Level(index) => {
                 mv.level_index = index;
                 mv.level = data::load_level(index);
+                mv.map.reset();
                 GameState::SetupTransition
             }
         }
@@ -203,6 +204,7 @@ impl GameState {
             Some(index) => {
                 mv.level_index = index;
                 mv.level = data::load_level(index);
+                mv.map.reset();
                 GameState::SetupTransition
             },
             None => {

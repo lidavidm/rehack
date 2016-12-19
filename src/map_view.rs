@@ -28,6 +28,13 @@ impl MapView {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.overlay.clear();
+        self.named_overlay.clear();
+        self.clear_help();
+        self.clear_highlight();
+    }
+
     pub fn get_overlay(&mut self) -> &mut HashMap<String, (Point, TermCell)> {
         &mut self.named_overlay
     }
@@ -38,13 +45,22 @@ impl MapView {
 
     pub fn display(&mut self, level: &Level) {
         for (y, line) in level.layout.iter().enumerate() {
+            if y == 0 {
+                // XXX: temporary hack - need to adjust rendering
+                // bounds and coordinate conversions
+                continue;
+            }
             let y = y + 1;
             for (x, tile) in line.iter().enumerate() {
-                let x = x + 1;
-                match Level::convert(*tile) {
-                    Some(c) => self.window.put_at(Point::new(x as u16, y as u16), c),
-                    None => {},
+                if x == 0 {
+                    // XXX: see above
+                    continue;
                 }
+                let x = x + 1;
+                self.window.put_at(Point::new(x as u16, y as u16), match Level::convert(*tile) {
+                    Some(c) => c,
+                    None => ' '.into(),
+                });
             }
         }
 
