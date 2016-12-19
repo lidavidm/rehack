@@ -48,6 +48,31 @@ pub fn next(state: UiState, event: UiEvent, mv: &mut ModelView) -> UiState {
                 select_program(p, level, map, info)
             }
         }
+        (Selected, Move(d)) => {
+            use game_state::Direction::*;
+            if let Some(ref mut program) = map.get_highlight() {
+                let cur = { program.borrow().position };
+                let can_move = { program.borrow().can_move() };
+                let point = match d {
+                    Up => Point::new(cur.x, cur.y - 1),
+                    Down => Point::new(cur.x, cur.y + 1),
+                    Left => Point::new(cur.x - 1, cur.y),
+                    Right => Point::new(cur.x + 1, cur.y),
+                };
+
+                if can_move {
+                    if let CellContents::Empty = level.contents_of(point) {
+                        program.borrow_mut().move_to(point);
+                        info.update_program(&program.borrow());
+                        map.update_highlight(&level);
+                    }
+                }
+            }
+            state
+        }
+        (_, Move(_)) => {
+            state
+        }
         (Unselected, ClickInfo(_)) => Unselected,
         (Selected, ClickInfo(p)) => {
             if let Some(ability) = info.translate_click(p) {
@@ -143,6 +168,7 @@ pub fn next_setup(state: UiState, event: UiEvent, mv: &mut ModelView) -> UiState
     let new_state = match (state, event) {
         (state, Quit) => state,
         (state, Tick) => state,
+        (state, Move(_)) => state,
 
         (Unselected, ClickMap(p)) | (Selected, ClickMap(p)) => {
             match mv.level.contents_of(p) {
