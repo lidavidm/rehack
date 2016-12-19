@@ -191,10 +191,15 @@ impl GameState {
         match mission_select::next(&mut mission_state, event, mv) {
             mission_select::Transition::Ui(_) => GameState::MissionSelect(mission_state),
             mission_select::Transition::Level(index) => {
-                mv.level_index = index;
-                mv.level = data::load_level(index);
-                mv.map.reset();
-                GameState::SetupTransition
+                if let Some(level) = data::load_level(index) {
+                    mv.level_index = index;
+                    mv.level = level;
+                    mv.map.reset();
+                    GameState::SetupTransition
+                }
+                else {
+                    GameState::Quit
+                }
             }
         }
     }
@@ -202,10 +207,15 @@ impl GameState {
     pub fn next_transition_turn(mut state: level_transition::State, event: level_transition::UiEvent, mv: &mut ModelView) -> GameState {
         match level_transition::next(&mut state, event, mv) {
             Some(index) => {
-                mv.level_index = index;
-                mv.level = data::load_level(index);
-                mv.map.reset();
-                GameState::SetupTransition
+                if let Some(level) = data::load_level(index) {
+                    mv.level_index = index;
+                    mv.level = level;
+                    mv.map.reset();
+                    GameState::SetupTransition
+                }
+                else {
+                    GameState::Quit
+                }
             },
             None => {
                 GameState::LevelTransition(state)

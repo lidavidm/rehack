@@ -66,21 +66,26 @@ lazy_static! {
     };
 }
 
-pub fn load_level(id: usize) -> level::Level {
-    let mut level = level::Level::new(&LEVELS[id]);
+pub fn load_level(id: usize) -> Option<level::Level> {
+    if let Some(desc) = LEVELS.get(id) {
+        let mut level = level::Level::new(desc);
 
-    for (row_offset, row) in LEVELS[id].iter().enumerate() {
-        for (col_offset, c) in row.chars().enumerate() {
-            let s: String = c.to_string();
-            if let Some(builder) = PROGRAMS.get(&s) {
-                let mut instance = builder.instance(Team::Enemy);
-                instance.position = Point::new(col_offset as u16 + 1, row_offset as u16 + 1);
-                level.add_program(instance);
+        for (row_offset, row) in LEVELS[id].iter().enumerate() {
+            for (col_offset, c) in row.chars().enumerate() {
+                let s: String = c.to_string();
+                if let Some(builder) = PROGRAMS.get(&s) {
+                    let mut instance = builder.instance(Team::Enemy);
+                    instance.position = Point::new(col_offset as u16 + 1, row_offset as u16 + 1);
+                    level.add_program(instance);
+                }
             }
         }
-    }
 
-    level
+        Some(level)
+    }
+    else {
+        None
+    }
 }
 
 // sprinters (s) - very fast, low damage, low health

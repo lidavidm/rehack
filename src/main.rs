@@ -31,7 +31,7 @@ use map_view::MapView;
 use player::Player;
 
 const MS: u64 = 1_000_000;
-const TICK_TIME: u64 = 250;
+const TICK_TIME: u64 = 100;
 
 fn main() {
     use std::sync::mpsc::TryRecvError::*;
@@ -43,7 +43,7 @@ fn main() {
     use voodoo::terminal::{Mode, Terminal};
     use voodoo::window::{Window};
 
-    let level = data::load_level(0);
+    let level = data::load_level(0).expect("No levels defined!");
     let mut terminal = Terminal::new();
     terminal.cursor(Mode::Disabled);
     terminal.clear_color(ColorValue::Black);
