@@ -58,6 +58,7 @@ lazy_static! {
 
         m.insert("s".to_owned(),
                  ProgramBuilder::new("Sprinter")
+                 .ability("Overflow", Ability::Destroy { damage: 1, range: 3 })
                  .max_tail(2)
                  .max_moves(10));
 
