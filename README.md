@@ -3,7 +3,7 @@
 Originally, this was supposed to be my entry into
 the [Github Game Off 2016](https://github.com/github/game-off-2016/).
 Unfortunately, real life took over, and I didn't end up completing it
-in the month of November. However, I plan to still get the game into a
+in the month of November. However, the game is now at least in a
 minimally playable state.
 
 The game is inspired by an old Shockwave game LEGO had called
