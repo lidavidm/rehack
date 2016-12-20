@@ -115,7 +115,7 @@ fn main() {
                 Ok(evt) => {
                     state = state.next(evt, &mut mv);
                     if let GameState::Quit = state {
-                        break 'main;
+                        state = GameState::MissionSelect(mission_select::State::new(Window::new(Point::new(0, 0), 80, 24)));
                     }
                 },
                 Err(Disconnected) => break 'main,

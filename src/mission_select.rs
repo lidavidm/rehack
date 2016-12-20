@@ -52,5 +52,6 @@ pub fn display(mission_state: &mut State, compositor: &mut ::voodoo::compositor:
         mission_state.window.print_at(Point::new(13, 6 + offset as u16), *line);
     }
     mission_state.window.print_at(Point::new(30, 14), "PRESS ANY KEY TO BEGIN");
+    mission_state.window.print_at(Point::new(33, 15), "PRESS Q TO QUIT");
     mission_state.window.refresh(compositor);
 }
