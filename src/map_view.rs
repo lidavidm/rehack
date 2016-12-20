@@ -131,11 +131,11 @@ impl MapView {
                                 CellContents::Empty => Some('·'.into()),
                                 CellContents::Unpassable | CellContents::Uplink => None,
                                 CellContents::Program(p) => {
-                                    if p.borrow().position == position {
-                                        None
+                                    if p.borrow().position != position && p.borrow().team == Team::Enemy {
+                                        Some('X'.into())
                                     }
                                     else {
-                                        Some('X'.into())
+                                        None
                                     }
                                 },
                             } {
