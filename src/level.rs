@@ -7,6 +7,8 @@ use voodoo::window::{Point, TermCell};
 use program::{Program, ProgramRef, Team};
 
 pub struct Level {
+    height: usize,
+    width: usize,
     pub layout: Vec<Vec<char>>,
     pub programs: Vec<ProgramRef>,
 }
@@ -20,7 +22,7 @@ pub enum CellContents {
 
 impl Level {
     pub fn new(description: &[&str; 20]) -> Level {
-        let mut layout = Vec::new();
+        let mut layout: Vec<Vec<char>> = Vec::new();
         for s in description.iter() {
             layout.push(s.chars().map(|c| {
                 match c {
@@ -30,6 +32,8 @@ impl Level {
             }).collect());
         }
         Level {
+            height: layout.len(),
+            width: layout[0].len(),
             layout: layout,
             programs: Vec::new(),
         }
@@ -77,7 +81,14 @@ impl Level {
             }
         }
 
-        match self.layout[(point.y - 1) as usize][(point.x - 1) as usize] {
+        let row = (point.y - 1) as usize;
+        let col = (point.x - 1) as usize;
+
+        if row >= self.height || col >= self.width {
+            return CellContents::Unpassable;
+        }
+
+        match self.layout[row][col] {
             '.' => CellContents::Empty,
             'o' => CellContents::Uplink,
             _ => CellContents::Unpassable,

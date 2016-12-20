@@ -121,6 +121,12 @@ impl MapView {
                         }
                         if dx.abs() + dy.abs() <= range {
                             let p = Point::new((x as isize + dx) as u16, (y as isize + dy) as u16);
+
+                            // Guard at map edges
+                            if p.x <= 0 || p.y <= 0 {
+                                continue;
+                            }
+
                             if let Some(tc) = match level.contents_of(p) {
                                 CellContents::Empty => Some('·'.into()),
                                 CellContents::Unpassable | CellContents::Uplink => None,
